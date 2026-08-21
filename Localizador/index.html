@@ -238,11 +238,14 @@ mark.alt{background:rgba(255,138,61,.22);color:var(--alt)}
   <button id="btnUpdate">Actualizar</button>
 </div>
 
+<!-- Stock del almacén, generado por actualizar-stock.js. Si el archivo no existe, no pasa nada. -->
+<script src="stock-datos.js" onerror="window.STOCK_EMBED=null"></script>
+
 <script>
 /* =========================================================
    0. CONFIGURACIÓN
    ========================================================= */
-const APP_VERSION = "2026.08.21-1";
+const APP_VERSION = "2026.08.21-2";
 
 /* Almacenes. La web de Obramat pide elegir almacén y guarda la elección en una
    cookie del navegador: la primera vez hay que seleccionarlo allí una sola vez. */
@@ -1250,7 +1253,18 @@ $('#verTxt').textContent = "Versión "+APP_VERSION;
 (async()=>{
   // 1) lo último que se guardó en este móvil, o el listado incrustado
   await cargar((await Store.get("loc_datos")) || DEMO, false);
-  try{ STOCK = JSON.parse((await Store.get("loc_stock")) || "{}"); }catch(e){ STOCK = {}; }
+  // Stock: gana el más reciente entre el archivo publicado y lo pegado a mano en este móvil
+  let guardado = {};
+  try{ guardado = JSON.parse((await Store.get("loc_stock")) || "{}"); }catch(e){ guardado = {}; }
+  const fechaDe = o => { const k = Object.keys(o)[0]; return k ? Date.parse(o[k].fecha||0)||0 : 0; };
+  if(window.STOCK_EMBED){
+    const publicado = {};
+    await cargaStock(window.STOCK_EMBED, false);
+    Object.assign(publicado, STOCK);
+    STOCK = fechaDe(guardado) > fechaDe(publicado) ? guardado : publicado;
+  }else{
+    STOCK = guardado;
+  }
   // 2) si hay hoja publicada y cobertura, se refresca en segundo plano
   if(DATOS_URL){
     try{

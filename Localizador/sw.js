@@ -1,7 +1,7 @@
 /* Service worker del Localizador.
    IMPORTANTE: sube el número de VERSION en cada parche que publiques.
    Es lo que hace que los móviles se enteren de que hay algo nuevo. */
-const VERSION = "2026.08.21-1";
+const VERSION = "2026.08.21-2";
 const CACHE   = "localizador-" + VERSION;
 const BASICOS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 // zxing.js no se precarga: solo lo baja el iPhone la primera vez que bipa, y queda guardado.
@@ -24,6 +24,22 @@ self.addEventListener("message", e => { if (e.data === "YA") self.skipWaiting();
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
+
+  // El archivo de stock: siempre el más nuevo del servidor, nunca la copia guardada
+  if (req.url.includes("stock-datos.js")) {
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req, { cache: "no-store" });
+        const c = await caches.open(CACHE);
+        c.put(req, res.clone());
+        return res;
+      } catch (err) {
+        return (await caches.match(req)) || new Response("window.STOCK_EMBED=null;",
+                 { headers: { "Content-Type": "application/javascript" } });
+      }
+    })());
+    return;
+  }
 
   // La página: primero red (así llega el parche), y si no hay cobertura, copia guardada
   if (req.mode === "navigate") {
