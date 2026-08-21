@@ -242,15 +242,16 @@ mark.alt{background:rgba(255,138,61,.22);color:var(--alt)}
 /* =========================================================
    0. CONFIGURACIÓN
    ========================================================= */
-const APP_VERSION = "2026.08.20-14";
+const APP_VERSION = "2026.08.21-1";
 
 /* Almacenes. La web de Obramat pide elegir almacén y guarda la elección en una
    cookie del navegador: la primera vez hay que seleccionarlo allí una sola vez. */
 const ALMACENES = {
   santiago: {nombre:"Santiago de Compostela", web:"https://www.obramat.es/search?q="}
 };
-// Servidor que consulta el stock. Vacío = la app no consulta, solo abre la web.
-const STOCK_API = "/.netlify/functions/stock";
+// Consulta en vivo desde el servidor: descartada, la web bloquea a los servidores
+// (DataDome devuelve 403). El stock entra por instantánea, con actualizar-stock.js.
+const STOCK_API = "";
 let STOCK = {};        // {codigo: {n, fecha}} — instantánea traída de la web
 let ALMACEN = "santiago";
 // Pega aquí la URL del CSV publicado (Google Sheets → Archivo → Compartir →

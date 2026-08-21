@@ -1,7 +1,7 @@
 /* Service worker del Localizador.
    IMPORTANTE: sube el número de VERSION en cada parche que publiques.
    Es lo que hace que los móviles se enteren de que hay algo nuevo. */
-const VERSION = "2026.08.20-14";
+const VERSION = "2026.08.21-1";
 const CACHE   = "localizador-" + VERSION;
 const BASICOS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 // zxing.js no se precarga: solo lo baja el iPhone la primera vez que bipa, y queda guardado.
