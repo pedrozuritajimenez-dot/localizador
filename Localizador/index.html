@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1214">
+<title>Localizador · Tubo logístico</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1214; --panel:#171B1F; --panel2:#1E242A; --line:#2B333B;
+  --txt:#E9EEF3; --dim:#8B98A5; --hi:#FFD100; --alt:#FF8A3D; --ok:#3DDC97; --warn:#FF6B4A;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--txt)}
+body{font-family:"Barlow",system-ui,-apple-system,sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;padding-bottom:env(safe-area-inset-bottom)}
+.cond{font-family:"Barlow Condensed","Barlow",sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- cabecera + buscador ---------- */
+header{position:sticky;top:0;z-index:20;background:var(--ink);border-bottom:1px solid var(--line);
+  padding-top:env(safe-area-inset-top)}
+.bar{display:flex;align-items:flex-end;gap:10px;padding:14px 14px 10px}
+.titulo{flex:1;min-width:0}
+.brand{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.05em;font-weight:700;
+  font-size:27px;line-height:1}
+.brand small{display:block;font-size:13px;letter-spacing:.18em;color:var(--dim);font-weight:600;margin-top:2px}
+.brand i{color:var(--hi);font-style:normal}
+.almrow{display:flex;align-items:center;gap:9px;padding:0 14px 9px}
+.almrow span{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:#5E6B77}
+.alm{flex:1;min-width:0;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;
+  padding:8px 26px 8px 10px;font-family:"Barlow",sans-serif;font-size:14px;
+  -webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,#5E6B77 50%),linear-gradient(135deg,#5E6B77 50%,transparent 50%);
+  background-position:calc(100% - 14px) 17px, calc(100% - 9px) 17px;background-size:5px 5px,5px 5px;
+  background-repeat:no-repeat}
+.iconbtn{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;color:var(--dim)}
+.search{display:flex;align-items:center;gap:8px;margin:0 14px 10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0 10px}
+.search input{flex:1;background:none;border:0;color:var(--txt);font-size:18px;padding:14px 0;min-width:0}
+.search input::placeholder{color:#5E6B77}
+.search input:focus{outline:none}
+.scan{border-left:1px solid var(--line);padding-left:10px;color:var(--hi);font-size:12px;font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.08em;display:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--dim)}
+.chip[aria-pressed="true"]{background:var(--hi);color:#111;border-color:var(--hi);font-weight:600}
+
+/* ---------- resultados ---------- */
+main{padding:12px 14px 40px}
+.res{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r);padding:11px 12px;margin-bottom:8px}
+.res:active{background:var(--panel2)}
+.res.top{border-left-color:var(--hi)}
+.res .d1{font-weight:600;font-size:16px;line-height:1.25}
+.res .d2{font-size:13px;color:var(--dim);margin-top:2px}
+.res .row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.tag{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.06em;font-size:13px;font-weight:600;background:#252C33;border-radius:6px;padding:3px 8px}
+.tag.loc{background:var(--hi);color:#111}
+.code{font-family:"IBM Plex Mono";font-size:12px;color:var(--dim)}
+.stk{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.05em;font-size:17px}
+.stk.ok{color:var(--ok)} .stk.no{color:var(--warn)}
+.stk.viejo{color:var(--dim)}
+.code.aviso{color:var(--alt)}
+.vt{margin-left:auto;font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.06em;
+  font-size:12px;color:#5E6B77;white-space:nowrap}
+mark{background:rgba(255,209,0,.22);color:var(--hi);border-radius:2px;padding:0 1px}
+mark.alt{background:rgba(255,138,61,.22);color:var(--alt)}
+.res.alt{border-left-color:var(--alt);background:#191B1D}
+.tag.loc.alt{background:var(--alt);color:#160B04}
+.altcab{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.1em;font-size:13px;
+  color:var(--alt);margin:20px 0 9px;display:flex;align-items:center;gap:9px}
+.altcab:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,138,61,.5),transparent)}
+.altcab.hi{color:var(--dim);margin-top:22px}
+.altcab.hi:after{background:linear-gradient(90deg,var(--line),transparent)}
+
+.empty{text-align:center;color:var(--dim);padding:38px 20px}
+.empty .big{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.1em;font-size:20px;color:var(--txt);margin-bottom:6px}
+.empty p{margin:0 auto;max-width:30ch;font-size:15px;line-height:1.5}
+.empty ul{list-style:none;margin:18px 0 0;padding:0;font-size:15px;line-height:1;
+  display:flex;flex-direction:column;gap:8px;align-items:center}
+.empty li{font-family:"IBM Plex Mono";font-size:13px;color:#7C8894;background:var(--panel);
+  border:1px solid var(--line);border-radius:999px;padding:8px 14px}
+
+/* ---------- ficha (placa de ubicación) ---------- */
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(8,10,12,.72);display:none;align-items:flex-end}
+.sheet.open{display:flex}
+.card{width:100%;max-height:92vh;overflow:auto;background:var(--ink);border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:14px 16px calc(28px + env(safe-area-inset-bottom));animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.plate{background:var(--hi);color:#111;border-radius:8px;padding:12px 14px}
+.plate .lead{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:600;opacity:.72}
+.plate .path{font-family:"Barlow Condensed";text-transform:uppercase;font-weight:700;
+  font-size:clamp(23px,6.6vw,34px);line-height:1.05;margin-top:2px;white-space:nowrap}
+.plate .raw{font-family:"IBM Plex Mono";font-size:13px;font-weight:600;margin-top:6px;opacity:.75}
+.mapa{margin-top:14px;border:1px solid var(--line);border-radius:9px;padding:12px 12px 10px;background:var(--panel)}
+.fila+.fila{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.flabel{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.12em;font-size:11px;
+  color:#5E6B77;margin-bottom:7px}
+.flabel b{color:var(--dim);font-weight:600}
+.wall{display:flex;align-items:flex-end;gap:0}
+.tramo{min-width:0}
+.tlabel{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.08em;font-size:9.5px;
+  color:#4E5A65;text-align:center;margin-bottom:4px;white-space:nowrap;overflow:visible}
+.racks{display:flex;gap:3px}
+.rk{flex:1;min-width:0;height:34px;border:1px solid var(--line);border-radius:4px;display:grid;place-items:center;
+  font-family:"IBM Plex Mono";font-size:11px;color:#4E5A65;background:#12161A}
+.rk.on{background:var(--hi);border-color:var(--hi);color:#111;font-weight:600;
+  box-shadow:0 0 0 3px rgba(255,209,0,.18)}
+
+/* El paso: hueco real entre tramos, con jambas y barrido de puerta */
+.puerta{flex:0 0 58px;margin:0 7px;position:relative;height:34px;align-self:flex-end;
+  display:grid;place-items:center}
+.puerta:before,.puerta:after{content:"";position:absolute;top:-4px;bottom:-4px;width:3px;background:#8FA3B5;
+  border-radius:2px}
+.puerta:before{left:-3px} .puerta:after{right:-3px}
+.puerta .lamas{position:absolute;inset:-4px 0;border-radius:2px;
+  background:repeating-linear-gradient(90deg,#8FA3B5 0 3px,transparent 3px 7px);opacity:.55}
+.puerta b{position:relative;font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.1em;
+  font-size:10px;font-weight:700;color:#0F1214;background:#8FA3B5;border-radius:3px;padding:2px 5px}
+.dl{margin-top:16px;border-top:1px solid var(--line)}
+.dl div{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
+.dl dt{flex:0 0 34%;color:var(--dim);font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.06em;font-size:13px;margin:0;padding-top:2px}
+.dl dd{margin:0;flex:1}
+.acts{display:flex;gap:8px;margin-top:16px}
+.acts button{flex:1;border:1px solid var(--line);border-radius:8px;padding:13px;font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:15px}
+.acts .prim{background:var(--txt);color:#111;border-color:var(--txt)}
+
+/* ---------- panel de datos ---------- */
+.pane{position:fixed;inset:0;z-index:50;background:var(--ink);display:none;overflow:auto;
+  padding:calc(16px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom))}
+.pane.open{display:block}
+.pane h2{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.1em;font-size:20px;margin:0 0 4px}
+.pane p{color:var(--dim);font-size:14px;line-height:1.55}
+.pane textarea{width:100%;height:170px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-family:"IBM Plex Mono";font-size:12px;padding:10px;margin-top:8px}
+.pane .acts button{background:var(--panel)}
+.hint{font-family:"IBM Plex Mono";font-size:11.5px;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;white-space:pre;margin-top:8px}
+.update{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:65;display:none;align-items:center;gap:12px;
+  background:var(--panel2);border:1px solid var(--alt);border-radius:10px;padding:12px 14px;font-size:14px}
+.update.open{display:flex}
+.update button{margin-left:auto;background:var(--alt);color:#160B04;border-radius:7px;padding:8px 14px;
+  font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:14px}
+.ver{font-family:"IBM Plex Mono";font-size:10.5px;color:#4E5A65;text-align:center;padding:22px 0 4px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--txt);color:#111;padding:10px 16px;border-radius:8px;font-weight:600;font-size:14px;z-index:60;display:none}
+/* ---------- lector ---------- */
+.scanner{position:fixed;inset:0;z-index:70;background:#000;display:none}
+.scanner.open{display:block}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.reticle{position:absolute;left:8%;right:8%;top:40%;height:110px;border:2px solid var(--hi);border-radius:8px;
+  box-shadow:0 0 0 100vmax rgba(0,0,0,.55)}
+.scanmsg{position:absolute;left:0;right:0;top:calc(40% + 128px + env(safe-area-inset-top));text-align:center;color:var(--txt);
+  font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.08em;font-size:15px;padding:0 20px}
+.scanclose{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(36px + env(safe-area-inset-bottom));border:1px solid var(--line);
+  background:rgba(23,27,31,.9);border-radius:8px;padding:12px 26px;font-family:"Barlow Condensed";
+  text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:15px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="titulo"><div class="brand">Localizad<i>o</i>r<small>Tubo logístico</small></div></div>
+  </div>
+  <div class="search">
+    <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off"
+           placeholder="Código o descripción…" aria-label="Buscar artículo">
+    <button class="iconbtn" id="btnClear" aria-label="Borrar">✕</button>
+    <button class="scan" id="btnScan">Bipar</button>
+  </div>
+  <div class="almrow">
+    <span>Almacén</span>
+    <select class="alm" id="alm" aria-label="Almacén">
+      <option value="santiago">Santiago de Compostela</option>
+    </select>
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main id="results"></main>
+
+<!-- ficha -->
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Ubicación del artículo">
+  <div class="card" id="card"></div>
+</div>
+
+<!-- lector -->
+<div class="scanner" id="scanner" role="dialog" aria-modal="true" aria-label="Lector de código de barras">
+  <video id="cam" playsinline muted></video>
+  <div class="reticle"></div>
+  <div class="scanmsg" id="scanState">Enfoca el código de barras</div>
+  <button class="scanclose" id="scanClose">Cancelar</button>
+</div>
+
+<!-- datos -->
+<div class="pane" id="pane">
+  <h2>Datos del localizador</h2>
+  <p>Pega aquí tu listado (una línea por artículo, separado por <b>;</b> o tabulador, como sale de Excel).
+     La primera línea son los títulos. Se guarda en el móvil hasta que lo cambies.</p>
+  <div class="hint">codigo;ean;designacion;descripcion;marca;medida;ubicacion;expo;notas;familia
+10960593;;CATANIA PRO Frontal 120CM Transp. Cromo;Mampara frontal CATANIA PRO 120 cm;CATANIA PRO;120;203-07-03;;;Mamp. frontal</div>
+  <p style="margin-top:10px">La columna <b>ean</b> es la que usa el lector. Sin ella el escáner funciona igual, pero solo si el código de barras coincide con tu código interno.</p>
+  <textarea id="csv" spellcheck="false" placeholder="Pega aquí…"></textarea>
+  <div class="acts">
+    <button class="prim" id="btnLoad">Cargar datos</button>
+    <button id="btnExport">Exportar</button>
+  </div>
+  <p style="margin-top:24px"><b>Stock de la web</b></p>
+  <p>Pega aquí el CSV que genera <code>actualizar-stock.js</code> (columnas codigo;stock;fecha).</p>
+  <textarea id="stockCsv" spellcheck="false" style="height:110px" placeholder="codigo;stock;fecha"></textarea>
+  <div class="acts">
+    <button class="prim" id="btnStock">Cargar stock</button>
+    <button id="btnStockBorra">Borrar stock</button>
+  </div>
+
+  <div class="acts">
+    <button id="btnDemo">Restaurar listado base</button>
+    <button id="btnCloseData">Cerrar</button>
+  </div>
+  <p style="margin-top:22px">Cómo se traduce la ubicación</p>
+  <div class="hint" id="mapaHint"></div>
+  <div class="ver" id="verTxt"></div>
+  <p>Formato leído: <b>ZONA-RACK-POSICIÓN</b>. <b>203</b> = pared de mamparas, <b>202</b> = pared de muebles. Si tu codificación es otra, dímelo y cambio la regla en una línea.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- aviso de versión nueva -->
+<div class="update" id="update">
+  <span>Hay una versión nueva del localizador.</span>
+  <button id="btnUpdate">Actualizar</button>
+</div>
+
+<script>
+/* =========================================================
+   0. CONFIGURACIÓN
+   ========================================================= */
+const APP_VERSION = "2026.08.20-14";
+
+/* Almacenes. La web de Obramat pide elegir almacén y guarda la elección en una
+   cookie del navegador: la primera vez hay que seleccionarlo allí una sola vez. */
+const ALMACENES = {
+  santiago: {nombre:"Santiago de Compostela", web:"https://www.obramat.es/search?q="}
+};
+// Servidor que consulta el stock. Vacío = la app no consulta, solo abre la web.
+const STOCK_API = "/.netlify/functions/stock";
+let STOCK = {};        // {codigo: {n, fecha}} — instantánea traída de la web
+let ALMACEN = "santiago";
+// Pega aquí la URL del CSV publicado (Google Sheets → Archivo → Compartir →
+// Publicar en la Web → CSV). Vacío = usa el listado incrustado abajo.
+const DATOS_URL = "";
+
+/* =========================================================
+   1. LISTADO INCRUSTADO  (sustituye por los tuyos en ≡ → Datos)
+   ========================================================= */
+const DEMO = `codigo;ean;designacion;descripcion;marca;fabricante;medida;ubicacion;expo;notas;familia;ventas
+25061896;;CONJ MUEBLE BAÑO MAYA 40X22CM RBL 1 PTA;Conjunto de mueble de baño con lavabo 40x22 cm, roble, montado;Maya;;40x22;202-01-01;;;Muebles;32
+25061839;;CONJ MUEBLE BAÑO PARIS 50X33CM BCO 1PTA;Conjunto de mueble de baño con lavabo 50x33 cm, blanco, montado;Paris;;50x33;202-01-02;;;Muebles;54
+25078573;;CONJ MUEBLE BAÑO NOVA MINI 50CM BCO;Conjunto de mueble de baño con lavabo 50x33 cm, blanco, montado;Nova Mini;;50x33;202-01-03;;;Muebles;21
+25078572;;CONJ MUEBLE BAÑO NOVA MINI 50CM VDE;Conjunto de mueble de baño con lavabo 50x33 cm, verde, montado;Nova Mini;;50x33;202-01-04;;;Muebles;33
+25061899;;MUEBLE BAÑO NEXA 50X39CM BCO 2 PTA;Mueble de baño 50x39 cm, blanco, kit sin montar;Nexa;;50x39;202-01-05;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;81
+25061802;;MUEBLE BAÑO NEXA 60X45CM BCO 2 PTA;Mueble de baño 60x45 cm, blanco, kit sin montar;Nexa;;60x45;202-01-06;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;31
+25061789;;MUEBLE BAÑO NEXA 60X45CM BCO 2 CAJ;Mueble de baño 60x45 cm, blanco, kit sin montar;Nexa;;60x45;202-01-07;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;57
+25061800;;MUEBLE BAÑO NEXA 60X45CM RBL 2 PTA;Mueble de baño 60x45 cm, roble, kit sin montar;Nexa;;60x45;202-01-08;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;42
+25061783;;MUEBLE BAÑO NEXA 60X45CM RBL 2 CAJ;Mueble de baño 60x45 cm, roble, kit sin montar;Nexa;;60x45;202-01-09;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;26
+25061895;;MUEBLE BAÑO MAYA 60X45CM BCO 2 CAJ;Mueble de baño 60x45 cm, blanco, montado;Maya;;60x45;202-01-10;;;Muebles;19
+25062107;;MUEBLE BAÑO MAYA 60X45CM RBL 2CAJ;Mueble de baño 60x45 cm, roble, montado;Maya;;60x45;202-01-11;;;Muebles;68
+25061872;;MUEBLE BAÑO LONDRES 60X45CM BCO 2PTA 1CJ;Mueble de baño 60x45 cm, blanco, montado;Londres;;60x45;202-02-01;;;Muebles;16
+25061870;;MUEBLE BAÑO LONDRES 60X45CM RBL 2PTA 1CJ;Mueble de baño 60x45 cm, roble, montado;Londres;;60x45;202-02-02;;;Muebles;35
+25061769;;MUEBLE BAÑO BOSTON 60X45CM BCO 3 CAJ;Mueble de baño 60x45 cm, blanco, montado;Boston;;60x45;202-02-03;;;Muebles;26
+25061766;;MUEBLE BAÑO BOSTON 60X45CM RBL 3 CAJ;Mueble de baño 60x45 cm, roble, montado;Boston;;60x45;202-02-04;;;Muebles;45
+25138192;;MUEBLE BAÑO MONACO 60CM BGE MT 2CAJ;Mueble de baño 60x45 cm, beige, montado;Monaco;;60x45;202-02-05;;;Muebles;
+25138190;;MUEBLE BAÑO MONACO 60CM VDE 2CAJ;Mueble de baño 60x45 cm, verde, montado;Monaco;;60x45;202-02-06;;;Muebles;
+25138191;;MUEBLE BAÑO MONACO 60CM AZ 2CAJ;Mueble de baño 60x45 cm, azul, montado;Monaco;;60x45;202-03-01;;;Muebles;
+25032924;;MUEBLE BAÑO EMOTION 60CM ROB 2 CAJ;Mueble de baño 60x45 cm, roble, montado;Emotion;;60x45;202-03-02;;;Muebles;12
+25099301;;MUEBLE BAÑO EMOTION 60CM ROB OSCURO 2CAJ;Mueble de baño 60x45 cm, roble oscuro, montado;Emotion;;60x45;202-03-03;;;Muebles;
+25098515;;MUEBLE NOVA GEO ALISTONADO RBL CL 60CM;Mueble de baño 60x45 cm, roble claro, montado;Nova Geo;;60x45;202-03-04;;;Muebles;1
+25076842;;MUEBLE NOVA GEO ALISTONADO NOG 60CM;Mueble de baño 60x45 cm, nogal, montado;Nova Geo;;60x45;202-03-05;;;Muebles;7
+25099217;;MUEBLE BAÑO BLUR 60CM BCO 2 CAJ;Mueble de baño 60x45 cm, blanco, montado;Blur;;60x45;202-03-06;;;Muebles;2
+25136742;;MUEBLE BAÑO BLUR 60CM GR 2 CAJ;Mueble de baño 60x45 cm, gris, montado;Blur;;60x45;202-03-07;;;Muebles;
+25094902;;MUEBLE BAÑO BLUR 60CM VDE 2 CAJ;Mueble de baño 60x45 cm, verde, montado;Blur;;60x45;202-03-08;;;Muebles;
+25076836;;MUEBLE BAÑO BLUR 60CM NGR MT 2 CAJ;Mueble de baño 60x45 cm, negro, montado;Blur;;60x45;202-03-09;;;Muebles;1
+25061878;;MUEBLE BAÑO LIMA 60X39CM BCO 3 CAJ;Mueble de baño 60x39 cm, blanco, montado;Lima;;60x39;202-03-10;;;Muebles;20
+25061879;;MUEBLE BAÑO LIMA 60X39CM RBL 3 CAJ;Mueble de baño 60x39 cm, roble, montado;Lima;;60x39;202-03-11;;;Muebles;14
+25061787;;MUEBLE BAÑO NEXA 70X45CM BCO 2 PTA;Mueble de baño 70x45 cm, blanco, kit sin montar;Nexa;;70x45;202-03-12;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;13
+25061803;;MUEBLE BAÑO NEXA 70X45CM BCO 2 CAJ;Mueble de baño 70x45 cm, blanco, kit sin montar;Nexa;;70x45;202-03-13;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;6
+25061784;;MUEBLE BAÑO NEXA 70X45CM RBL 2 PTA;Mueble de baño 70x45 cm, roble, kit sin montar;Nexa;;70x45;202-03-14;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;14
+25061788;;MUEBLE BAÑO NEXA 70X45CM RBL 2 CAJ;Mueble de baño 70x45 cm, roble, kit sin montar;Nexa;;70x45;202-03-15;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;9
+25061897;;MUEBLE BAÑO MAYA 70X45CM BCO 2 CAJ;Mueble de baño 70x45 cm, blanco, montado;Maya;;70x45;202-03-16;;;Muebles;39
+25062105;;MUEBLE BAÑO MAYA 70X45CM RBL 2CAJ;Mueble de baño 70x45 cm, roble, montado;Maya;;70x45;202-04-01;;;Muebles;20
+25061881;;MUEBLE BAÑO BOSTON 70X45CM BCO 3 CAJ;Mueble de baño 70x45 cm, blanco, montado;Boston;;70x45;202-04-02;;;Muebles;30
+25061768;;MUEBLE BAÑO BOSTON 70X45CM RBL 3 CAJ;Mueble de baño 70x45 cm, roble, montado;Boston;;70x45;202-04-03;;;Muebles;42
+25061785;;MUEBLE BAÑO NEXA 80X45CM BCO 2 PTA;Mueble de baño 80x45 cm, blanco, kit sin montar;Nexa;;80x45;202-04-04;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;27
+25061801;;MUEBLE BAÑO NEXA 80X45CM BCO 2 CAJ;Mueble de baño 80x45 cm, blanco, kit sin montar;Nexa;;80x45;202-04-05;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;47
+25061786;;MUEBLE BAÑO NEXA 80X45CM RBL 2 PTA;Mueble de baño 80x45 cm, roble, kit sin montar;Nexa;;80x45;202-04-06;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;119
+25061782;;MUEBLE BAÑO NEXA 80X45CM RBL 2 CAJ;Mueble de baño 80x45 cm, roble, kit sin montar;Nexa;;80x45;202-05-01;;Viene en kit, sin montar · Antes se llamaba Eco;Muebles;14
+25061898;;MUEBLE BAÑO MAYA 80X45CM BCO 2 CAJ;Mueble de baño 80x45 cm, blanco, montado;Maya;;80x45;202-05-02;;;Muebles;24
+25062106;;MUEBLE BAÑO MAYA 80X45CM RBL 2CAJ;Mueble de baño 80x45 cm, roble, montado;Maya;;80x45;202-05-03;;;Muebles;23
+25061838;;MUEBLE BAÑO LONDRES 80X45CM BCO 3PTA 2CJ;Mueble de baño 80x45 cm, blanco, montado;Londres;;80x45;202-05-04;;;Muebles;4
+25061871;;MUEBLE BAÑO LONDRES 80X45CM RBL 3PTA 2CJ;Mueble de baño 80x45 cm, roble, montado;Londres;;80x45;202-05-05;;;Muebles;18
+25061880;;MUEBLE BAÑO BOSTON 80X45CM BCO 3 CAJ;Mueble de baño 80x45 cm, blanco, montado;Boston;;80x45;202-05-06;;;Muebles;76
+25061883;;MUEBLE BAÑO BOSTON 80X45CM RBL 3 CAJ;Mueble de baño 80x45 cm, roble, montado;Boston;;80x45;202-06-01;;;Muebles;144
+25138202;;MUEBLE BAÑO MONACO 80CM BGE MT 2CAJ;Mueble de baño 80x45 cm, beige, montado;Monaco;;80x45;202-06-02;;;Muebles;
+25138203;;MUEBLE BAÑO MONACO 80CM VDE 2CAJ;Mueble de baño 80x45 cm, verde, montado;Monaco;;80x45;202-06-03;;;Muebles;
+25138204;;MUEBLE BAÑO MONACO 80CM AZ 2CAJ;Mueble de baño 80x45 cm, azul, montado;Monaco;;80x45;202-06-04;;;Muebles;
+25032925;;MUEBLE BAÑO EMOTION 80CM ROB 2 CAJ;Mueble de baño 80x45 cm, roble, montado;Emotion;;80x45;202-06-05;;;Muebles;27
+25099311;;MUEBLE BAÑO EMOTION 80CM ROB OSCURO 2CAJ;Mueble de baño 80x45 cm, roble oscuro, montado;Emotion;;80x45;202-07-01;;;Muebles;
+25098514;;MUEBLE NOVA GEO ALISTONADO RBL CL 80CM;Mueble de baño 80x45 cm, roble claro, montado;Nova Geo;;80x45;202-07-02;;;Muebles;1
+25076843;;MUEBLE NOVA GEO ALISTONADO NOG 80CM;Mueble de baño 80x45 cm, nogal, montado;Nova Geo;;80x45;202-07-03;;;Muebles;16
+25099218;;MUEBLE BAÑO BLUR 80CM BCO 2 CAJ;Mueble de baño 80x45 cm, blanco, montado;Blur;;80x45;202-07-04;;;Muebles;1
+25136743;;MUEBLE BAÑO BLUR 80CM GR 2 CAJ;Mueble de baño 80x45 cm, gris, montado;Blur;;80x45;202-07-05;;;Muebles;
+25050874;;MUEBLE BAÑO BLUR 80CM VDE 2 CAJ;Mueble de baño 80x45 cm, verde, montado;Blur;;80x45;202-07-06;;;Muebles;7
+25050875;;MUEBLE BAÑO BLUR 80CM NGR MT;Mueble de baño 80x45 cm, negro, montado;Blur;;80x45;202-07-07;;;Muebles;12
+25061890;;MUEBLE BAÑO LIMA 80X39CM BCO 3 CAJ;Mueble de baño 80x39 cm, blanco, montado;Lima;;80x39;202-07-08;;;Muebles;58
+25061891;;MUEBLE BAÑO LIMA 80X39CM RBL 3 CAJ;Mueble de baño 80x39 cm, roble, montado;Lima;;80x39;202-08-01;;;Muebles;10
+25062108;;MUEBLE BAÑO MAYA 100X45CM BCO 2CAJ;Mueble de baño 100x45 cm, blanco, montado;Maya;;100x45;202-08-02;;;Muebles;3
+25062109;;MUEBLE BAÑO MAYA 100X45CM RBL 2CAJ;Mueble de baño 100x45 cm, roble, montado;Maya;;100x45;202-08-03;;;Muebles;28
+25061882;;MUEBLE BAÑO BOSTON 100X45CM BCO 3 CAJ;Mueble de baño 100x45 cm, blanco, montado;Boston;;100x45;202-08-04;;;Muebles;25
+25061767;;MUEBLE BAÑO BOSTON 100X45CM RBL 3 CAJ;Mueble de baño 100x45 cm, roble, montado;Boston;;100x45;202-08-05;;;Muebles;22
+25098513;;MUEBLE NOVA GEO ALISTONADO RBL CL 100CM;Mueble de baño 100x45 cm, roble claro, montado;Nova Geo;;100x45;202-08-06;;;Muebles;1
+25094901;;MUEBLE NOVA GEO ALISTONADO NOG 100CM;Mueble de baño 100x45 cm, nogal, montado;Nova Geo;;100x45;202-09-01;;;Muebles;
+25099216;;MUEBLE BAÑO BLUR 100CM BCO 2 CAJ;Mueble de baño 100x45 cm, blanco, montado;Blur;;100x45;202-09-02;;;Muebles;
+25136741;;MUEBLE BAÑO BLUR 100CM GR 2 CAJ;Mueble de baño 100x45 cm, gris, montado;Blur;;100x45;202-09-03;;;Muebles;
+25094900;;MUEBLE BAÑO BLUR 100CM VDE 2 CAJ;Mueble de baño 100x45 cm, verde, montado;Blur;;100x45;202-09-04;;;Muebles;
+25076865;;MUEBLE BAÑO BLUR 100CM NGR MT 2 CAJ;Mueble de baño 100x45 cm, negro, montado;Blur;;100x45;202-09-05;;;Muebles;1
+25050871;;ENCIMERA PIEDRA 60CM BCO;Encimera de piedra 60x45 cm, blanco, montado;Encimera piedra;;60x45;202-09-06;;;Encimeras;5
+25050868;;ENCIMERA PIEDRA 60CM NGR;Encimera de piedra 60x45 cm, negro, montado;Encimera piedra;;60x45;202-09-07;;;Encimeras;3
+25050872;;ENCIMERA PIEDRA 80CM BCO;Encimera de piedra 80x45 cm, blanco, montado;Encimera piedra;;80x45;202-09-08;;;Encimeras;10
+25050877;;ENCIMERA PIEDRA 80CM NGR;Encimera de piedra 80x45 cm, negro, montado;Encimera piedra;;80x45;202-09-09;;;Encimeras;7
+25076856;;ENCIMERA PIEDRA 100CM BCO;Encimera de piedra 100x45 cm, blanco, montado;Encimera piedra;;100x45;202-09-10;;;Encimeras;8
+25076855;;ENCIMERA PIEDRA 100CM NGR;Encimera de piedra 100x45 cm, negro, montado;Encimera piedra;;100x45;202-09-11;;;Encimeras;4
+10951395;;MUEBLE BAÑO ATLANTIS 1 CAJ BCO 60;Mueble de baño 60x45 cm, blanco, montado;Atlantis;;60x45;202-10-01;;;Muebles;5
+10951416;;MUEBLE BAÑO ATLANTIS 2 CAJ BCO 60;Mueble de baño 60x45 cm, blanco, montado;Atlantis;;60x45;202-10-02;;;Muebles;
+10951752;;MUEBLE BAÑO ATLANTIS 3 CAJ BCO 60;Mueble de baño 60x45 cm, blanco, montado;Atlantis;;60x45;202-10-03;;;Muebles;4
+10951346;;MUEBLE BAÑO ATLANTIS 1 CAJ MIEL 60;Mueble de baño 60x45 cm, miel, montado;Atlantis;;60x45;202-10-04;;;Muebles;
+10951423;;MUEBLE BAÑO ATLANTIS 2 CAJ MIEL 60;Mueble de baño 60x45 cm, miel, montado;Atlantis;;60x45;202-10-05;;;Muebles;5
+10951766;;MUEBLE BAÑO ATLANTIS 3 CAJ MIEL 60;Mueble de baño 60x45 cm, miel, montado;Atlantis;;60x45;202-10-06;;;Muebles;7
+25076649;;MUEBLE BAÑO ATLANTIS 1 CAJ ANTR MT 60;Mueble de baño 60x45 cm, antracita, montado;Atlantis;;60x45;202-10-07;;;Muebles;
+25076692;;MUEBLE BAÑO ATLANTIS 2 CAJ ANTR MT 60;Mueble de baño 60x45 cm, antracita, montado;Atlantis;;60x45;202-10-08;;;Muebles;2
+25076682;;MUEBLE BAÑO ATLANTIS 3 CAJ ANTR MT 60;Mueble de baño 60x45 cm, antracita, montado;Atlantis;;60x45;202-10-09;;;Muebles;2
+10951451;;MUEBLE BAÑO ATLANTIS 2 CAJ BCO 80;Mueble de baño 80x45 cm, blanco, montado;Atlantis;;80x45;202-10-10;;;Muebles;5
+10951773;;MUEBLE BAÑO ATLANTIS 3 CAJ BCO 80;Mueble de baño 80x45 cm, blanco, montado;Atlantis;;80x45;202-10-11;;;Muebles;29
+10951472;;MUEBLE BAÑO ATLANTIS 2 CAJ MIEL 80;Mueble de baño 80x45 cm, miel, montado;Atlantis;;80x45;202-10-12;;;Muebles;5
+10951780;;MUEBLE BAÑO ATLANTIS 3 CAJ MIEL 80;Mueble de baño 80x45 cm, miel, montado;Atlantis;;80x45;202-10-13;;;Muebles;13
+25076700;;MUEBLE BAÑO ATLANTIS 2 CAJ ANTR MT 80;Mueble de baño 80x45 cm, antracita, montado;Atlantis;;80x45;202-10-14;;;Muebles;4
+25076710;;MUEBLE BAÑO ATLANTIS 3 CAJ ANTR MT 80;Mueble de baño 80x45 cm, antracita, montado;Atlantis;;80x45;202-10-15;;;Muebles;38
+10951563;;MUEBLE BAÑO ATLANTIS 2 CAJ BCO 100;Mueble de baño 100x45 cm, blanco, montado;Atlantis;;100x45;202-11-01;;;Muebles;6
+10951794;;MUEBLE BAÑO ATLANTIS 3 CAJ BCO 100;Mueble de baño 100x45 cm, blanco, montado;Atlantis;;100x45;202-11-02;;;Muebles;29
+10951570;;MUEBLE BAÑO ATLANTIS 2 CAJ MIEL 100;Mueble de baño 100x45 cm, miel, montado;Atlantis;;100x45;202-11-03;;;Muebles;8
+10951801;;MUEBLE BAÑO ATLANTIS 3 CAJ MIEL 100;Mueble de baño 100x45 cm, miel, montado;Atlantis;;100x45;202-11-04;;;Muebles;30
+25076659;;MUEBLE BAÑO ATLANTIS 2 CAJ ANTRMT 100;Mueble de baño 100x45 cm, antracita, montado;Atlantis;;100x45;202-11-05;;;Muebles;1
+25076680;;MUEBLE BAÑO ATLANTIS 3 CAJ ANTRMT 100;Mueble de baño 100x45 cm, antracita, montado;Atlantis;;100x45;202-11-06;;;Muebles;10
+10951584;;TAPA ATLANTIS 60 BLANCO 3 CM;Tapa/encimera 60x45 cm, blanco, montado;Atlantis;;60x45;202-11-07;;;Encimeras;1
+10951605;;TAPA ATLANTIS 60 MIEL 3 CM;Tapa/encimera 60x45 cm, miel, montado;Atlantis;;60x45;202-11-08;;Apilada con las tapas de su medida;Encimeras;14
+25076669;;TAPA ATLANTIS 60 ANTR MT 3 CM;Tapa/encimera 60x45 cm, antracita, montado;Atlantis;;60x45;202-11-09;;Apilada con las tapas de su medida;Encimeras;1
+10951612;;TAPA ATLANTIS 80 BLANCO 3 CM;Tapa/encimera 80x45 cm, blanco, montado;Atlantis;;80x45;202-11-10;;;Encimeras;5
+10951626;;TAPA ATLANTIS 80 MIEL 3 CM;Tapa/encimera 80x45 cm, miel, montado;Atlantis;;80x45;202-11-11;;Apilada con las tapas de su medida;Encimeras;18
+25076681;;TAPA ATLANTIS 80 ANTR MT 3 CM;Tapa/encimera 80x45 cm, antracita, montado;Atlantis;;80x45;202-11-12;;Apilada con las tapas de su medida;Encimeras;6
+10951633;;TAPA ATLANTIS 100 BLANCO 3 CM;Tapa/encimera 100x45 cm, blanco, montado;Atlantis;;100x45;202-11-13;;;Encimeras;4
+10951640;;TAPA ATLANTIS 100 MIEL 3 CM;Tapa/encimera 100x45 cm, miel, montado;Atlantis;;100x45;202-11-14;;Apilada con las tapas de su medida;Encimeras;15
+25076679;;TAPA ATLANTIS 100 ANTR MT 3 CM;Tapa/encimera 100x45 cm, antracita, montado;Atlantis;;100x45;202-11-15;;Apilada con las tapas de su medida;Encimeras;
+10951654;;TAPA ATLANTIS 120 BLANCO 3 CM;Tapa/encimera 120x45 cm, blanco, montado;Atlantis;;120x45;202-11-16;;;Encimeras;2
+10951661;;TAPA ATLANTIS 120 MIEL 3 CM;Tapa/encimera 120x45 cm, miel, montado;Atlantis;;120x45;202-11-17;;Apilada con las tapas de su medida;Encimeras;4
+25076690;;TAPA ATLANTIS 120 ANTR MT 3 CM;Tapa/encimera 120x45 cm, antracita, montado;Atlantis;;120x45;202-11-18;;Apilada con las tapas de su medida;Encimeras;1
+10951675;;TAPA ATLANTIS 140 BLANCO 3 CM;Tapa/encimera 140x45 cm, blanco, montado;Atlantis;;140x45;202-11-19;;;Encimeras;
+10951682;;TAPA ATLANTIS 140 MIEL 3 CM;Tapa/encimera 140x45 cm, miel, montado;Atlantis;;140x45;202-11-20;;Apilada con las tapas de su medida;Encimeras;3
+25076691;;TAPA ATLANTIS 140 ANTR MT 3 CM;Tapa/encimera 140x45 cm, antracita, montado;Atlantis;;140x45;202-11-21;;Apilada con las tapas de su medida;Encimeras;
+10960733;;CATANIA PRO 1/4 Circulo 75X75CM Transp. Cromo;Mampara circular 1/4 de círculo CATANIA PRO 75X75 cm, Transp. Cromo;CATANIA PRO;;75X75;203-01-01;;;Mamparas circulares;16
+10960740;;CATANIA PRO 1/4 Circulo 80X80CM Transp. Cromo;Mampara circular 1/4 de círculo CATANIA PRO 80X80 cm, Transp. Cromo;CATANIA PRO;;80X80;203-01-02;;;Mamparas circulares;14
+10960754;;CATANIA PRO 1/4 Circulo 90X90CM Transp. Cromo;Mampara circular 1/4 de círculo CATANIA PRO 90X90 cm, Transp. Cromo;CATANIA PRO;;90X90;203-01-03;;;Mamparas circulares;5
+25043204;;LEXIE 1/4 Circulo 80X80CM Serigrafiado Cromo;Mampara circular 1/4 de círculo LEXIE 80X80 cm, Serigrafiado Cromo;LEXIE;;80X80;203-01-04;;;Mamparas circulares;6
+25043205;;LEXIE 1/4 Circulo 90X90CM Serigrafiado Cromo;Mampara circular 1/4 de círculo LEXIE 90X90 cm, Serigrafiado Cromo;LEXIE;;90X90;203-01-05;;;Mamparas circulares;4
+25050816;;CARIBE PRO Frontal Fija 70CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 70 cm, Transp. Cromo;CARIBE PRO;;70;203-01-06;;;Mamparas fijas y complementarias;84
+25050804;;CARIBE PRO Frontal Fija 80CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 80 cm, Transp. Cromo;CARIBE PRO;;80;203-01-07;;;Mamparas fijas y complementarias;82
+25050817;;CARIBE PRO Frontal Fija 90CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 90 cm, Transp. Cromo;CARIBE PRO;;90;203-01-08;;;Mamparas fijas y complementarias;40
+25050808;;CARIBE PRO Frontal Fija 100CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 100 cm, Transp. Cromo;CARIBE PRO;;100;203-01-09;;Ocupa el final del rack 1 y sigue en el rack 2;Mamparas fijas y complementarias;48
+25050810;;CARIBE PRO Frontal Fija 120CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 120 cm, Transp. Cromo;CARIBE PRO;;120;203-02-01;;;Mamparas fijas y complementarias;21
+25053201;;CARIBE PRO Frontal Fija 70CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 70 cm, Transp. Negro;CARIBE PRO;;70;203-02-02;;;Mamparas fijas y complementarias;24
+25050813;;CARIBE PRO Frontal Fija 80CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 80 cm, Transp. Negro;CARIBE PRO;;80;203-02-03;;;Mamparas fijas y complementarias;46
+25050809;;CARIBE PRO Frontal Fija 90CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 90 cm, Transp. Negro;CARIBE PRO;;90;203-02-04;;;Mamparas fijas y complementarias;34
+25050806;;CARIBE PRO Frontal Fija 100CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 100 cm, Transp. Negro;CARIBE PRO;;100;203-02-05;;;Mamparas fijas y complementarias;30
+25053185;;CARIBE PRO Frontal Fija 120CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 120 cm, Transp. Negro;CARIBE PRO;;120;203-02-06;;;Mamparas fijas y complementarias;25
+25050805;;CARIBE PRO Frontal Abatible 40CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 40 cm, Transp. Cromo;CARIBE PRO;;40;203-02-07;;;Mamparas fijas y complementarias;7
+25050811;;CARIBE PRO Frontal Abatible 60CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 60 cm, Transp. Cromo;CARIBE PRO;;60;203-02-08;;;Mamparas fijas y complementarias;12
+25050803;;CARIBE PRO Frontal Abatible 70CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 70 cm, Transp. Cromo;CARIBE PRO;;70;203-02-09;;;Mamparas fijas y complementarias;29
+25050821;;CARIBE PRO Frontal Abatible 80CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 80 cm, Transp. Cromo;CARIBE PRO;;80;203-02-10;;Ocupa el final del rack 2 y sigue en el rack 3;Mamparas fijas y complementarias;18
+25050818;;CARIBE PRO Frontal Abatible 90CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 90 cm, Transp. Cromo;CARIBE PRO;;90;203-03-01;;;Mamparas fijas y complementarias;26
+25053184;;CARIBE PRO Frontal Abatible 40CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 40 cm, Transp. Negro;CARIBE PRO;;40;203-03-02;;;Mamparas fijas y complementarias;1
+25053188;;CARIBE PRO Frontal Abatible 60CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 60 cm, Transp. Negro;CARIBE PRO;;60;203-03-03;;;Mamparas fijas y complementarias;6
+25053187;;CARIBE PRO Frontal Abatible 70CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 70 cm, Transp. Negro;CARIBE PRO;;70;203-03-04;;;Mamparas fijas y complementarias;6
+25053202;;CARIBE PRO Frontal Abatible 80CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 80 cm, Transp. Negro;CARIBE PRO;;80;203-03-05;;;Mamparas fijas y complementarias;7
+25053186;;CARIBE PRO Frontal Abatible 90CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 90 cm, Transp. Negro;CARIBE PRO;;90;203-03-06;;;Mamparas fijas y complementarias;9
+25050820;;CARIBE PRO Puerta Abatible 40CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 40 cm, Transp. Cromo;CARIBE PRO;;40;203-03-07;;;Mamparas fijas y complementarias;24
+25050814;;CARIBE PRO Puerta Abatible 50CM Transp. Cromo;Mampara fijo o complementario CARIBE PRO 50 cm, Transp. Cromo;CARIBE PRO;;50;203-03-08;;;Mamparas fijas y complementarias;88
+25050819;;CARIBE PRO Puerta Abatible 40CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 40 cm, Transp. Negro;CARIBE PRO;;40;203-03-09;;;Mamparas fijas y complementarias;7
+25053189;;CARIBE PRO Puerta Abatible 50CM Transp. Negro;Mampara fijo o complementario CARIBE PRO 50 cm, Transp. Negro;CARIBE PRO;;50;203-03-10;;;Mamparas fijas y complementarias;18
+10883656;;UTIRIK Frontal Abatible 65-75CM Transp. Cromo;Mampara fijo o complementario UTIRIK 65-75 cm, Transp. Cromo;UTIRIK;;65-75;203-03-11;;;Mamparas fijas y complementarias;3
+10883684;;UTIRIK Frontal Abatible 75-85CM Transp. Cromo;Mampara fijo o complementario UTIRIK 75-85 cm, Transp. Cromo;UTIRIK;;75-85;203-03-12;;;Mamparas fijas y complementarias;4
+10883691;;UTIRIK Frontal Abatible 85-95CM Transp. Cromo;Mampara fijo o complementario UTIRIK 85-95 cm, Transp. Cromo;UTIRIK;;85-95;203-04-01;;;Mamparas fijas y complementarias;2
+10883705;;UTIRIK Frontal Abatible 95-105CM Transp. Cromo;Mampara fijo o complementario UTIRIK 95-105 cm, Transp. Cromo;UTIRIK;;95-105;203-04-02;;;Mamparas fijas y complementarias;5
+10883726;;UTIRIK Lateral Fijo 70CM Transp. Cromo;Mampara fijo o complementario UTIRIK 70 cm, Transp. Cromo;UTIRIK;;70;203-04-03;;;Mamparas fijas y complementarias;0
+10883740;;UTIRIK Lateral Fijo 80CM Transp. Cromo;Mampara fijo o complementario UTIRIK 80 cm, Transp. Cromo;UTIRIK;;80;203-04-04;;;Mamparas fijas y complementarias;1
+25062777;;D0 PRO Frontal Fija 80X200CM Transp. Cromo;Mampara fijo o complementario D0 PRO 80X200 cm, Transp. Cromo;D0 PRO;Duscholux;80X200;203-04-05;;;Mamparas fijas y complementarias;4
+25062778;;D0 PRO Frontal Fija 90X200CM Transp. Cromo;Mampara fijo o complementario D0 PRO 90X200 cm, Transp. Cromo;D0 PRO;Duscholux;90X200;203-04-06;;;Mamparas fijas y complementarias;6
+25062779;;D0 PRO Frontal Fija 100X200CM Transp. Cromo;Mampara fijo o complementario D0 PRO 100X200 cm, Transp. Cromo;D0 PRO;Duscholux;100X200;203-04-07;;;Mamparas fijas y complementarias;6
+25144652;;D-MOVE Puerta Abatible 40CM Transp. Cromo (Derecha);Mampara fijo o complementario D-MOVE 40 cm, Transp. Cromo (Derecha);D-MOVE;;40;203-04-08;;;Mamparas fijas y complementarias;
+25144653;;D-MOVE Puerta Abatible 40CM Transp. Cromo (Izquierda);Mampara fijo o complementario D-MOVE 40 cm, Transp. Cromo (Izquierda);D-MOVE;;40;203-04-09;;;Mamparas fijas y complementarias;
+25144638;;D-MOVE Puerta Abatible 40CM Transp. Negro (Derecha);Mampara fijo o complementario D-MOVE 40 cm, Transp. Negro (Derecha);D-MOVE;;40;203-04-10;;;Mamparas fijas y complementarias;
+25144639;;D-MOVE Puerta Abatible 40CM Transp. Negro (Izquierda);Mampara fijo o complementario D-MOVE 40 cm, Transp. Negro (Izquierda);D-MOVE;;40;203-04-11;;;Mamparas fijas y complementarias;
+25045156;;CATANIA PRO Cuadrada 70X70CM Transp. Cromo;Mampara cuadrada CATANIA PRO 70X70 cm, Transp. Cromo;CATANIA PRO;;70X70;203-04-12;;;Mamparas cuadradas;19
+10960712;;CATANIA PRO Cuadrada 80X80CM Transp. Cromo;Mampara cuadrada CATANIA PRO 80X80 cm, Transp. Cromo;CATANIA PRO;;80X80;203-04-13;;;Mamparas cuadradas;65
+10960726;;CATANIA PRO Cuadrada 90X90CM Transp. Cromo;Mampara cuadrada CATANIA PRO 90X90 cm, Transp. Cromo;CATANIA PRO;;90X90;203-04-14;;;Mamparas cuadradas;28
+25043191;;LEXIE Cuadrada 80X80CM Serigrafiado Cromo;Mampara cuadrada LEXIE 80X80 cm, Serigrafiado Cromo;LEXIE;;80X80;203-04-15;;;Mamparas cuadradas;8
+10952704;;LEXIE Cuadrada 80X80CM Transp. Negro;Mampara cuadrada LEXIE 80X80 cm, Transp. Negro;LEXIE;;80X80;203-04-16;;;Mamparas cuadradas;3
+25043192;;LEXIE Cuadrada 90X90CM Serigrafiado Cromo;Mampara cuadrada LEXIE 90X90 cm, Serigrafiado Cromo;LEXIE;;90X90;203-04-17;;;Mamparas cuadradas;3
+25032214;;CATANIA PRO Frontal 100CM Transp. Cromo;Mampara frontal CATANIA PRO 100 cm, Transp. Cromo;CATANIA PRO;;100;203-07-01;;;Mamparas frontales;4
+25032227;;CATANIA PRO Frontal 110CM Transp. Cromo;Mampara frontal CATANIA PRO 110 cm, Transp. Cromo;CATANIA PRO;;110;203-07-02;;;Mamparas frontales;17
+10960593;;CATANIA PRO Frontal 120CM Transp. Cromo;Mampara frontal CATANIA PRO 120 cm, Transp. Cromo;CATANIA PRO;;120;203-07-03;;;Mamparas frontales;14
+10960600;;CATANIA PRO Frontal 130CM Transp. Cromo;Mampara frontal CATANIA PRO 130 cm, Transp. Cromo;CATANIA PRO;;130;203-07-04;;;Mamparas frontales;8
+10960614;;CATANIA PRO Frontal 140CM Transp. Cromo;Mampara frontal CATANIA PRO 140 cm, Transp. Cromo;CATANIA PRO;;140;203-07-05;;;Mamparas frontales;12
+25043218;;LEXIE Frontal 100CM Serigrafiado Cromo;Mampara frontal LEXIE 100 cm, Serigrafiado Cromo;LEXIE;;100;203-09-01;;;Mamparas frontales;
+25043215;;LEXIE Frontal 120CM Serigrafiado Cromo;Mampara frontal LEXIE 120 cm, Serigrafiado Cromo;LEXIE;;120;203-09-02;;;Mamparas frontales;4
+10774141;;LEXIE Frontal 120CM Transp. Negro;Mampara frontal LEXIE 120 cm, Transp. Negro;LEXIE;;120;203-09-03;;;Mamparas frontales;11
+25043217;;LEXIE Frontal 130CM Serigrafiado Cromo;Mampara frontal LEXIE 130 cm, Serigrafiado Cromo;LEXIE;;130;203-09-04;;;Mamparas frontales;2
+25043214;;LEXIE Frontal 140CM Serigrafiado Cromo;Mampara frontal LEXIE 140 cm, Serigrafiado Cromo;LEXIE;;140;203-09-05;;;Mamparas frontales;6
+10774155;;LEXIE Frontal 140CM Transp. Negro;Mampara frontal LEXIE 140 cm, Transp. Negro;LEXIE;;140;203-09-06;;;Mamparas frontales;18
+25060818;;INCA SLIM Rectangular 70X90CM Transp. Cromo;Mampara angular / rectangular INCA SLIM 70X90 cm, Transp. Cromo;INCA SLIM;Teka;70X90;203-06-01;;;Mamparas angulares;3
+25060819;;INCA SLIM Rectangular 70X100CM Transp. Cromo;Mampara angular / rectangular INCA SLIM 70X100 cm, Transp. Cromo;INCA SLIM;Teka;70X100;203-06-02;;;Mamparas angulares;3
+25060817;;INCA SLIM Rectangular 70X120CM Transp. Cromo;Mampara angular / rectangular INCA SLIM 70X120 cm, Transp. Cromo;INCA SLIM;Teka;70X120;203-06-03;;;Mamparas angulares;9
+25060816;;INCA SLIM Rectangular 80X120CM Transp. Cromo;Mampara angular / rectangular INCA SLIM 80X120 cm, Transp. Cromo;INCA SLIM;Teka;80X120;203-06-04;;;Mamparas angulares;13
+25060915;;INCA SLIM Rectangular 70X90CM Transp. Negro;Mampara angular / rectangular INCA SLIM 70X90 cm, Transp. Negro;INCA SLIM;Teka;70X90;203-06-05;;;Mamparas angulares;
+25060901;;INCA SLIM Rectangular 70X100CM Transp. Negro;Mampara angular / rectangular INCA SLIM 70X100 cm, Transp. Negro;INCA SLIM;Teka;70X100;203-06-06;;;Mamparas angulares;1
+25060918;;INCA SLIM Rectangular 70X120CM Transp. Negro;Mampara angular / rectangular INCA SLIM 70X120 cm, Transp. Negro;INCA SLIM;Teka;70X120;203-06-07;;;Mamparas angulares;5
+25060909;;INCA SLIM Rectangular 80X120CM Transp. Negro;Mampara angular / rectangular INCA SLIM 80X120 cm, Transp. Negro;INCA SLIM;Teka;80X120;203-06-08;;;Mamparas angulares;12
+25098006;;VICTORIA PLUS Angular Lateral 70CM Transp. Cromo;Mampara angular / rectangular VICTORIA PLUS 70 cm, Transp. Cromo;VICTORIA PLUS;Roca;70;203-06-09;;;Mamparas angulares;2
+25098005;;VICTORIA PLUS Angular Lateral 80CM Transp. Cromo;Mampara angular / rectangular VICTORIA PLUS 80 cm, Transp. Cromo;VICTORIA PLUS;Roca;80;203-06-10;;;Mamparas angulares;6
+25098007;;VICTORIA PLUS Angular Lateral 90CM Transp. Cromo;Mampara angular / rectangular VICTORIA PLUS 90 cm, Transp. Cromo;VICTORIA PLUS;Roca;90;203-06-11;;;Mamparas angulares;3
+25098009;;VICTORIA PLUS Angular Lateral 100CM Transp. Cromo;Mampara angular / rectangular VICTORIA PLUS 100 cm, Transp. Cromo;VICTORIA PLUS;Roca;100;203-06-12;;;Mamparas angulares;2
+25098008;;VICTORIA PLUS Angular Lateral 120CM Transp. Cromo;Mampara angular / rectangular VICTORIA PLUS 120 cm, Transp. Cromo;VICTORIA PLUS;Roca;120;203-06-13;;;Mamparas angulares;4
+25098051;;VICTORIA PLUS Angular Lateral 70CM Transp. Negro;Mampara angular / rectangular VICTORIA PLUS 70 cm, Transp. Negro;VICTORIA PLUS;Roca;70;203-06-14;;;Mamparas angulares;
+25098055;;VICTORIA PLUS Angular Lateral 80CM Transp. Negro;Mampara angular / rectangular VICTORIA PLUS 80 cm, Transp. Negro;VICTORIA PLUS;Roca;80;203-06-15;;;Mamparas angulares;
+25098054;;VICTORIA PLUS Angular Lateral 90CM Transp. Negro;Mampara angular / rectangular VICTORIA PLUS 90 cm, Transp. Negro;VICTORIA PLUS;Roca;90;203-06-16;;;Mamparas angulares;
+25098046;;VICTORIA PLUS Angular Lateral 100CM Transp. Negro;Mampara angular / rectangular VICTORIA PLUS 100 cm, Transp. Negro;VICTORIA PLUS;Roca;100;203-06-17;;;Mamparas angulares;
+25098048;;VICTORIA PLUS Angular Lateral 120CM Transp. Negro;Mampara angular / rectangular VICTORIA PLUS 120 cm, Transp. Negro;VICTORIA PLUS;Roca;120;203-06-18;;;Mamparas angulares;
+25139168;;NORA Angular Lateral 70CM Transp. Cromo;Mampara angular / rectangular NORA 70 cm, Transp. Cromo;NORA;Roca;70;203-06-19;;;Mamparas angulares;
+25139171;;NORA Angular Lateral 80CM Transp. Cromo;Mampara angular / rectangular NORA 80 cm, Transp. Cromo;NORA;Roca;80;203-06-20;;;Mamparas angulares;
+25139170;;NORA Angular Lateral 90CM Transp. Cromo;Mampara angular / rectangular NORA 90 cm, Transp. Cromo;NORA;Roca;90;203-06-21;;;Mamparas angulares;
+25139172;;NORA Angular Lateral 100CM Transp. Cromo;Mampara angular / rectangular NORA 100 cm, Transp. Cromo;NORA;Roca;100;203-06-22;;;Mamparas angulares;
+25032254;;DETROIT Bañera Frontal 140CM Transp. Cromo;Mampara frontal DETROIT 140 cm, Transp. Cromo;DETROIT;;140;203-06-23;;;Mamparas frontales;6
+25032209;;DETROIT Bañera Frontal 150CM Transp. Cromo;Mampara frontal DETROIT 150 cm, Transp. Cromo;DETROIT;;150;203-06-24;;;Mamparas frontales;4
+25032233;;DETROIT Bañera Frontal 160CM Transp. Cromo;Mampara frontal DETROIT 160 cm, Transp. Cromo;DETROIT;;160;203-06-25;;;Mamparas frontales;6
+25032230;;DETROIT Bañera Frontal 170CM Transp. Cromo;Mampara frontal DETROIT 170 cm, Transp. Cromo;DETROIT;;170;203-07-06;;;Mamparas frontales;5
+10960635;;CATANIA PRO Frontal 150CM Transp. Cromo;Mampara frontal CATANIA PRO 150 cm, Transp. Cromo;CATANIA PRO;;150;203-07-07;;;Mamparas frontales;4
+10960642;;CATANIA PRO Frontal 160CM Transp. Cromo;Mampara frontal CATANIA PRO 160 cm, Transp. Cromo;CATANIA PRO;;160;203-07-08;;;Mamparas frontales;2
+25127168;;CATANIA PRO Frontal 80CM 2 Puertas Transp. Cromo;Mampara frontal CATANIA PRO 80 cm, 2 Puertas Transp. Cromo;CATANIA PRO;;80;203-07-09;;;Mamparas frontales;
+25127169;;CATANIA PRO Frontal 90CM 2 Puertas Transp. Cromo;Mampara frontal CATANIA PRO 90 cm, 2 Puertas Transp. Cromo;CATANIA PRO;;90;203-07-10;;;Mamparas frontales;
+10960572;;CATANIA PRO Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo CATANIA PRO 70 cm, Transp. Cromo;CATANIA PRO;;70;203-11-01;;;Mamparas laterales fijas;6
+10960586;;CATANIA PRO Lateral Fijo 80CM Transp. Cromo;Mampara lateral fijo CATANIA PRO 80 cm, Transp. Cromo;CATANIA PRO;;80;203-11-02;;;Mamparas laterales fijas;5
+25105933;;CATANIA PRO Lateral Fijo 90CM Transp. Cromo;Mampara lateral fijo CATANIA PRO 90 cm, Transp. Cromo;CATANIA PRO;;90;203-11-03;;;Mamparas laterales fijas;
+10960670;;CATANIA PRO Rectangular 70X100CM Transp. Cromo;Mampara angular / rectangular CATANIA PRO 70X100 cm, Transp. Cromo;CATANIA PRO;;70X100;203-05-01;;;Mamparas angulares;61
+10960684;;CATANIA PRO Rectangular 70X120CM Transp. Cromo;Mampara angular / rectangular CATANIA PRO 70X120 cm, Transp. Cromo;CATANIA PRO;;70X120;203-05-02;;;Mamparas angulares;53
+25098019;;VICTORIA PLUS Frontal 100CM Transp. Cromo;Mampara frontal VICTORIA PLUS 100 cm, Transp. Cromo;VICTORIA PLUS;Roca;100;203-07-11;;;Mamparas frontales;1
+25098021;;VICTORIA PLUS Frontal 110CM Transp. Cromo;Mampara frontal VICTORIA PLUS 110 cm, Transp. Cromo;VICTORIA PLUS;Roca;110;203-07-12;;;Mamparas frontales;1
+25098020;;VICTORIA PLUS Frontal 120CM Transp. Cromo;Mampara frontal VICTORIA PLUS 120 cm, Transp. Cromo;VICTORIA PLUS;Roca;120;203-07-13;;;Mamparas frontales;4
+25098026;;VICTORIA PLUS Frontal 130CM Transp. Cromo;Mampara frontal VICTORIA PLUS 130 cm, Transp. Cromo;VICTORIA PLUS;Roca;130;203-07-14;;;Mamparas frontales;1
+25098025;;VICTORIA PLUS Frontal 140CM Transp. Cromo;Mampara frontal VICTORIA PLUS 140 cm, Transp. Cromo;VICTORIA PLUS;Roca;140;203-07-15;;;Mamparas frontales;8
+25098022;;VICTORIA PLUS Frontal 150CM Transp. Cromo;Mampara frontal VICTORIA PLUS 150 cm, Transp. Cromo;VICTORIA PLUS;Roca;150;203-07-16;;;Mamparas frontales;6
+25098027;;VICTORIA PLUS Frontal 160CM Transp. Cromo;Mampara frontal VICTORIA PLUS 160 cm, Transp. Cromo;VICTORIA PLUS;Roca;160;203-07-17;;;Mamparas frontales;2
+25098034;;VICTORIA PLUS Frontal 160CM 2 Puertas Transp. Cromo;Mampara frontal VICTORIA PLUS 160 cm, 2 Puertas Transp. Cromo;VICTORIA PLUS;Roca;160;203-07-18;;;Mamparas frontales;
+25098035;;VICTORIA PLUS Frontal 170CM 2 Puertas Transp. Cromo;Mampara frontal VICTORIA PLUS 170 cm, 2 Puertas Transp. Cromo;VICTORIA PLUS;Roca;170;203-07-19;;;Mamparas frontales;
+25098036;;VICTORIA PLUS Frontal 180CM 2 Puertas Transp. Cromo;Mampara frontal VICTORIA PLUS 180 cm, 2 Puertas Transp. Cromo;VICTORIA PLUS;Roca;180;203-07-20;;;Mamparas frontales;3
+25098037;;VICTORIA PLUS Frontal 190CM 2 Puertas Transp. Cromo;Mampara frontal VICTORIA PLUS 190 cm, 2 Puertas Transp. Cromo;VICTORIA PLUS;Roca;190;203-07-21;;;Mamparas frontales;
+25098033;;VICTORIA PLUS Frontal 200CM 2 Puertas Transp. Cromo;Mampara frontal VICTORIA PLUS 200 cm, 2 Puertas Transp. Cromo;VICTORIA PLUS;Roca;200;203-07-22;;;Mamparas frontales;
+25098050;;VICTORIA PLUS Frontal 100CM Transp. Negro;Mampara frontal VICTORIA PLUS 100 cm, Transp. Negro;VICTORIA PLUS;Roca;100;203-07-23;;;Mamparas frontales;
+25098052;;VICTORIA PLUS Frontal 110CM Transp. Negro;Mampara frontal VICTORIA PLUS 110 cm, Transp. Negro;VICTORIA PLUS;Roca;110;203-07-24;;;Mamparas frontales;
+25098047;;VICTORIA PLUS Frontal 120CM Transp. Negro;Mampara frontal VICTORIA PLUS 120 cm, Transp. Negro;VICTORIA PLUS;Roca;120;203-07-25;;;Mamparas frontales;1
+25098053;;VICTORIA PLUS Frontal 130CM Transp. Negro;Mampara frontal VICTORIA PLUS 130 cm, Transp. Negro;VICTORIA PLUS;Roca;130;203-07-26;;;Mamparas frontales;1
+25098057;;VICTORIA PLUS Frontal 140CM Transp. Negro;Mampara frontal VICTORIA PLUS 140 cm, Transp. Negro;VICTORIA PLUS;Roca;140;203-07-27;;;Mamparas frontales;
+25098049;;VICTORIA PLUS Frontal 150CM Transp. Negro;Mampara frontal VICTORIA PLUS 150 cm, Transp. Negro;VICTORIA PLUS;Roca;150;203-07-28;;;Mamparas frontales;
+25098045;;VICTORIA PLUS Frontal 160CM Transp. Negro;Mampara frontal VICTORIA PLUS 160 cm, Transp. Negro;VICTORIA PLUS;Roca;160;203-08-01;;;Mamparas frontales;
+25060542;;DENVER PRO Frontal A2 70X195CM Transp. Cromo;Mampara frontal DENVER PRO 70X195 cm, Transp. Cromo;DENVER PRO;;70X195;203-08-02;;;Mamparas frontales;3
+25060519;;DENVER PRO Frontal A2 75X195CM Transp. Cromo;Mampara frontal DENVER PRO 75X195 cm, Transp. Cromo;DENVER PRO;;75X195;203-08-03;;;Mamparas frontales;2
+25060518;;DENVER PRO Frontal A2 80X195CM Transp. Cromo;Mampara frontal DENVER PRO 80X195 cm, Transp. Cromo;DENVER PRO;;80X195;203-08-04;;;Mamparas frontales;7
+25060543;;DENVER PRO Frontal A2 85X195CM Transp. Cromo;Mampara frontal DENVER PRO 85X195 cm, Transp. Cromo;DENVER PRO;;85X195;203-08-05;;;Mamparas frontales;
+25060541;;DENVER PRO Frontal A2 90X195CM Transp. Cromo;Mampara frontal DENVER PRO 90X195 cm, Transp. Cromo;DENVER PRO;;90X195;203-08-06;;;Mamparas frontales;0
+25060540;;DENVER PRO Frontal A2 95X195CM Transp. Cromo;Mampara frontal DENVER PRO 95X195 cm, Transp. Cromo;DENVER PRO;;95X195;203-08-07;;;Mamparas frontales;1
+25060529;;DENVER PRO Frontal A1 100CM Transp. Cromo;Mampara frontal DENVER PRO 100 cm, Transp. Cromo;DENVER PRO;;100;203-08-08;;;Mamparas frontales;12
+25060533;;DENVER PRO Frontal A1 110CM Transp. Cromo;Mampara frontal DENVER PRO 110 cm, Transp. Cromo;DENVER PRO;;110;203-08-09;;;Mamparas frontales;6
+25060531;;DENVER PRO Frontal A1 120CM Transp. Cromo;Mampara frontal DENVER PRO 120 cm, Transp. Cromo;DENVER PRO;;120;203-08-10;;;Mamparas frontales;33
+25060528;;DENVER PRO Frontal A1 130CM Transp. Cromo;Mampara frontal DENVER PRO 130 cm, Transp. Cromo;DENVER PRO;;130;203-08-11;;;Mamparas frontales;11
+25060527;;DENVER PRO Frontal A1 140CM Transp. Cromo;Mampara frontal DENVER PRO 140 cm, Transp. Cromo;DENVER PRO;;140;203-08-12;;;Mamparas frontales;48
+25060532;;DENVER PRO Frontal A1 150CM Transp. Cromo;Mampara frontal DENVER PRO 150 cm, Transp. Cromo;DENVER PRO;;150;203-08-13;;;Mamparas frontales;19
+25060530;;DENVER PRO Frontal A1 160CM Transp. Cromo;Mampara frontal DENVER PRO 160 cm, Transp. Cromo;DENVER PRO;;160;203-08-14;;;Mamparas frontales;22
+25127215;;INCA PRO Frontal Fija 90CM Transp. Cromo;Mampara frontal INCA PRO 90 cm, Transp. Cromo;INCA PRO;Teka;90;203-08-15;;;Mamparas frontales;
+25127211;;INCA PRO Frontal Fija 100CM Transp. Cromo;Mampara frontal INCA PRO 100 cm, Transp. Cromo;INCA PRO;Teka;100;203-08-16;;;Mamparas frontales;
+25127212;;INCA PRO Frontal Fija 120CM Transp. Cromo;Mampara frontal INCA PRO 120 cm, Transp. Cromo;INCA PRO;Teka;120;203-08-17;;;Mamparas frontales;
+25127213;;INCA PRO Frontal Fija 90CM Transp. Negro;Mampara frontal INCA PRO 90 cm, Transp. Negro;INCA PRO;Teka;90;203-08-18;;;Mamparas frontales;
+25127210;;INCA PRO Frontal Fija 100CM Transp. Negro;Mampara frontal INCA PRO 100 cm, Transp. Negro;INCA PRO;Teka;100;203-08-19;;;Mamparas frontales;
+25127214;;INCA PRO Frontal Fija 120CM Transp. Negro;Mampara frontal INCA PRO 120 cm, Transp. Negro;INCA PRO;Teka;120;203-08-20;;;Mamparas frontales;
+25130571;;INCA PRO Frontal Fija 90CM Oro;Mampara frontal INCA PRO 90 cm, Oro;INCA PRO;Teka;90;203-09-07;;;Mamparas frontales;
+25130559;;INCA PRO Frontal Fija 100CM Oro;Mampara frontal INCA PRO 100 cm, Oro;INCA PRO;Teka;100;203-09-08;;;Mamparas frontales;
+25130570;;INCA PRO Frontal Fija 120CM Oro;Mampara frontal INCA PRO 120 cm, Oro;INCA PRO;Teka;120;203-09-09;;;Mamparas frontales;
+25043213;;LEXIE Frontal 150CM Serigrafiado Cromo;Mampara frontal LEXIE 150 cm, Serigrafiado Cromo;LEXIE;;150;203-09-10;;;Mamparas frontales;3
+25043216;;LEXIE Frontal 160CM Serigrafiado Cromo;Mampara frontal LEXIE 160 cm, Serigrafiado Cromo;LEXIE;;160;203-09-11;;;Mamparas frontales;7
+10774162;;LEXIE Frontal 160CM Transp. Negro;Mampara frontal LEXIE 160 cm, Transp. Negro;LEXIE;;160;203-09-12;;;Mamparas frontales;11
+25043229;;LEXIE Frontal 170CM 2 Puertas Serigrafiado Cromo;Mampara frontal LEXIE 170 cm, 2 Puertas Serigrafiado Cromo;LEXIE;;170;203-09-13;;;Mamparas frontales;2
+25043230;;LEXIE Frontal 180CM 2 Puertas Serigrafiado Cromo;Mampara frontal LEXIE 180 cm, 2 Puertas Serigrafiado Cromo;LEXIE;;180;203-09-14;;;Mamparas frontales;3
+25043221;;LEXIE Lateral Fijo 70CM Serigrafiado Cromo;Mampara lateral fijo LEXIE 70 cm, Serigrafiado Cromo;LEXIE;;70;203-11-04;;;Mamparas laterales fijas;2
+10774176;;LEXIE Lateral Fijo 70CM Transp. Negro;Mampara lateral fijo LEXIE 70 cm, Transp. Negro;LEXIE;;70;203-11-05;;;Mamparas laterales fijas;7
+25043222;;LEXIE Lateral Fijo 80CM Serigrafiado Cromo;Mampara lateral fijo LEXIE 80 cm, Serigrafiado Cromo;LEXIE;;80;203-11-06;;;Mamparas laterales fijas;0
+10774183;;LEXIE Lateral Fijo 80CM Transp. Negro;Mampara lateral fijo LEXIE 80 cm, Transp. Negro;LEXIE;;80;203-11-07;;;Mamparas laterales fijas;4
+25049433;;LEXIE Lateral Fijo 90CM Serigrafiado Cromo;Mampara lateral fijo LEXIE 90 cm, Serigrafiado Cromo;LEXIE;;90;203-11-08;;;Mamparas laterales fijas;2
+25049434;;LEXIE Lateral Fijo 90CM Transp. Negro;Mampara lateral fijo LEXIE 90 cm, Transp. Negro;LEXIE;;90;203-11-09;;;Mamparas laterales fijas;3
+25060826;;INCA SLIM Frontal 100CM Transp. Cromo;Mampara frontal INCA SLIM 100 cm, Transp. Cromo;INCA SLIM;Teka;100;203-09-15;;;Mamparas frontales;0
+25060824;;INCA SLIM Frontal 110CM Transp. Cromo;Mampara frontal INCA SLIM 110 cm, Transp. Cromo;INCA SLIM;Teka;110;203-09-16;;;Mamparas frontales;1
+25060821;;INCA SLIM Frontal 120CM Transp. Cromo;Mampara frontal INCA SLIM 120 cm, Transp. Cromo;INCA SLIM;Teka;120;203-09-17;;;Mamparas frontales;18
+25060823;;INCA SLIM Frontal 130CM Transp. Cromo;Mampara frontal INCA SLIM 130 cm, Transp. Cromo;INCA SLIM;Teka;130;203-09-18;;;Mamparas frontales;9
+25060822;;INCA SLIM Frontal 140CM Transp. Cromo;Mampara frontal INCA SLIM 140 cm, Transp. Cromo;INCA SLIM;Teka;140;203-09-19;;;Mamparas frontales;35
+25060825;;INCA SLIM Frontal 150CM Transp. Cromo;Mampara frontal INCA SLIM 150 cm, Transp. Cromo;INCA SLIM;Teka;150;203-09-20;;;Mamparas frontales;9
+25060827;;INCA SLIM Frontal 160CM Transp. Cromo;Mampara frontal INCA SLIM 160 cm, Transp. Cromo;INCA SLIM;Teka;160;203-09-21;;Ocupa el final del rack 9 y sigue en el rack 10;Mamparas frontales;15
+25060857;;INCA SLIM Frontal 160CM 2 Puertas Transp. Cromo;Mampara frontal INCA SLIM 160 cm, 2 Puertas Transp. Cromo;INCA SLIM;Teka;160;203-10-01;;;Mamparas frontales;8
+25060855;;INCA SLIM Frontal 170CM 2 Puertas Transp. Cromo;Mampara frontal INCA SLIM 170 cm, 2 Puertas Transp. Cromo;INCA SLIM;Teka;170;203-10-02;;;Mamparas frontales;13
+25060853;;INCA SLIM Frontal 180CM 2 Puertas Transp. Cromo;Mampara frontal INCA SLIM 180 cm, 2 Puertas Transp. Cromo;INCA SLIM;Teka;180;203-10-03;;;Mamparas frontales;13
+25060854;;INCA SLIM Frontal 190CM 2 Puertas Transp. Cromo;Mampara frontal INCA SLIM 190 cm, 2 Puertas Transp. Cromo;INCA SLIM;Teka;190;203-10-04;;;Mamparas frontales;4
+25060856;;INCA SLIM Frontal 200CM 2 Puertas Transp. Cromo;Mampara frontal INCA SLIM 200 cm, 2 Puertas Transp. Cromo;INCA SLIM;Teka;200;203-10-05;;;Mamparas frontales;4
+25060916;;INCA SLIM Frontal 100CM Transp. Negro;Mampara frontal INCA SLIM 100 cm, Transp. Negro;INCA SLIM;Teka;100;203-10-06;;;Mamparas frontales;4
+25060902;;INCA SLIM Frontal 110CM Transp. Negro;Mampara frontal INCA SLIM 110 cm, Transp. Negro;INCA SLIM;Teka;110;203-10-07;;;Mamparas frontales;6
+25060911;;INCA SLIM Frontal 120CM Transp. Negro;Mampara frontal INCA SLIM 120 cm, Transp. Negro;INCA SLIM;Teka;120;203-10-08;;;Mamparas frontales;7
+25060914;;INCA SLIM Frontal 130CM Transp. Negro;Mampara frontal INCA SLIM 130 cm, Transp. Negro;INCA SLIM;Teka;130;203-10-09;;;Mamparas frontales;10
+25060906;;INCA SLIM Frontal 140CM Transp. Negro;Mampara frontal INCA SLIM 140 cm, Transp. Negro;INCA SLIM;Teka;140;203-10-10;;;Mamparas frontales;14
+25060903;;INCA SLIM Frontal 150CM Transp. Negro;Mampara frontal INCA SLIM 150 cm, Transp. Negro;INCA SLIM;Teka;150;203-10-11;;;Mamparas frontales;8
+25060919;;INCA SLIM Frontal 160CM Transp. Negro;Mampara frontal INCA SLIM 160 cm, Transp. Negro;INCA SLIM;Teka;160;203-10-12;;;Mamparas frontales;4
+25060917;;INCA SLIM Frontal 160CM 2 Puertas Transp. Negro;Mampara frontal INCA SLIM 160 cm, 2 Puertas Transp. Negro;INCA SLIM;Teka;160;203-10-13;;;Mamparas frontales;3
+25060920;;INCA SLIM Frontal 170CM 2 Puertas Transp. Negro;Mampara frontal INCA SLIM 170 cm, 2 Puertas Transp. Negro;INCA SLIM;Teka;170;203-10-14;;;Mamparas frontales;3
+25060900;;INCA SLIM Frontal 180CM 2 Puertas Transp. Negro;Mampara frontal INCA SLIM 180 cm, 2 Puertas Transp. Negro;INCA SLIM;Teka;180;203-10-15;;;Mamparas frontales;4
+25060898;;INCA SLIM Frontal 190CM 2 Puertas Transp. Negro;Mampara frontal INCA SLIM 190 cm, 2 Puertas Transp. Negro;INCA SLIM;Teka;190;203-10-16;;;Mamparas frontales;1
+25060905;;INCA SLIM Frontal 200CM 2 Puertas Transp. Negro;Mampara frontal INCA SLIM 200 cm, 2 Puertas Transp. Negro;INCA SLIM;Teka;200;203-10-17;;;Mamparas frontales;1
+25139190;;NORA Frontal 110CM Transp. Cromo;Mampara frontal NORA 110 cm, Transp. Cromo;NORA;Roca;110;203-10-18;;;Mamparas frontales;
+25139191;;NORA Frontal 120CM Transp. Cromo;Mampara frontal NORA 120 cm, Transp. Cromo;NORA;Roca;120;203-10-19;;;Mamparas frontales;
+25139198;;NORA Frontal 130CM Transp. Cromo;Mampara frontal NORA 130 cm, Transp. Cromo;NORA;Roca;130;203-10-20;;;Mamparas frontales;
+25139193;;NORA Frontal 140CM Transp. Cromo;Mampara frontal NORA 140 cm, Transp. Cromo;NORA;Roca;140;203-10-21;;;Mamparas frontales;
+25139197;;NORA Frontal 150CM Transp. Cromo;Mampara frontal NORA 150 cm, Transp. Cromo;NORA;Roca;150;203-10-22;;;Mamparas frontales;
+25139195;;NORA Frontal 160CM Transp. Cromo;Mampara frontal NORA 160 cm, Transp. Cromo;NORA;Roca;160;203-10-23;;;Mamparas frontales;
+25133133;;D0 PRO Frontal 110X200CM Transp. Cromo;Mampara frontal D0 PRO 110X200 cm, Transp. Cromo;D0 PRO;Duscholux;110X200;203-10-24;;;Mamparas frontales;
+25062900;;D0 PRO Frontal 120X200CM Transp. Cromo;Mampara frontal D0 PRO 120X200 cm, Transp. Cromo;D0 PRO;Duscholux;120X200;203-10-25;;;Mamparas frontales;4
+25062901;;D0 PRO Frontal 130X200CM Transp. Cromo;Mampara frontal D0 PRO 130X200 cm, Transp. Cromo;D0 PRO;Duscholux;130X200;203-10-26;;;Mamparas frontales;2
+25062902;;D0 PRO Frontal 140X200CM Transp. Cromo;Mampara frontal D0 PRO 140X200 cm, Transp. Cromo;D0 PRO;Duscholux;140X200;203-10-27;;Ocupa el final del rack 10 y sigue en el rack 11;Mamparas frontales;6
+25062904;;D0 PRO Frontal 150X200CM Transp. Cromo;Mampara frontal D0 PRO 150X200 cm, Transp. Cromo;D0 PRO;Duscholux;150X200;203-11-10;;;Mamparas frontales;4
+25062903;;D0 PRO Frontal 160X200CM Transp. Cromo;Mampara frontal D0 PRO 160X200 cm, Transp. Cromo;D0 PRO;Duscholux;160X200;203-11-11;;;Mamparas frontales;5
+25144637;;D0 PRO Frontal Fija 80CM Transp. Negro;Mampara frontal D0 PRO 80 cm, Transp. Negro;D0 PRO;Duscholux;80;203-11-12;;;Mamparas frontales;
+25144650;;D0 PRO Frontal Fija 90CM Transp. Negro;Mampara frontal D0 PRO 90 cm, Transp. Negro;D0 PRO;Duscholux;90;203-11-13;;;Mamparas frontales;
+25144651;;D0 PRO Frontal Fija 100CM Transp. Negro;Mampara frontal D0 PRO 100 cm, Transp. Negro;D0 PRO;Duscholux;100;203-11-14;;;Mamparas frontales;
+25133134;;D0 PRO Frontal 110X200CM Transp. Negro;Mampara frontal D0 PRO 110X200 cm, Transp. Negro;D0 PRO;Duscholux;110X200;203-11-15;;;Mamparas frontales;
+25069446;;D0 PRO Frontal 120X200CM Transp. Negro;Mampara frontal D0 PRO 120X200 cm, Transp. Negro;D0 PRO;Duscholux;120X200;203-11-16;;;Mamparas frontales;1
+25094847;;D0 PRO Frontal 130X200CM Transp. Negro;Mampara frontal D0 PRO 130X200 cm, Transp. Negro;D0 PRO;Duscholux;130X200;203-11-17;;;Mamparas frontales;
+25094845;;D0 PRO Frontal 140X200CM Transp. Negro;Mampara frontal D0 PRO 140X200 cm, Transp. Negro;D0 PRO;Duscholux;140X200;203-11-18;;;Mamparas frontales;
+25094848;;D0 PRO Frontal 150X200CM Transp. Negro;Mampara frontal D0 PRO 150X200 cm, Transp. Negro;D0 PRO;Duscholux;150X200;203-11-19;;;Mamparas frontales;
+25094846;;D0 PRO Frontal 160X200CM Transp. Negro;Mampara frontal D0 PRO 160X200 cm, Transp. Negro;D0 PRO;Duscholux;160X200;203-11-20;;;Mamparas frontales;
+25145738;;KORA Frontal 90CM Transp. Cromo;Mampara frontal KORA 90 cm, Transp. Cromo;KORA;Profiltek;90;203-11-21;;;Mamparas frontales;
+25142606;;KORA Frontal 100CM Transp. Cromo;Mampara frontal KORA 100 cm, Transp. Cromo;KORA;Profiltek;100;203-11-22;;;Mamparas frontales;
+25145477;;KORA Frontal 110CM Transp. Cromo;Mampara frontal KORA 110 cm, Transp. Cromo;KORA;Profiltek;110;203-11-23;;;Mamparas frontales;
+25143281;;KORA Frontal 120CM Transp. Cromo;Mampara frontal KORA 120 cm, Transp. Cromo;KORA;Profiltek;120;203-11-24;;;Mamparas frontales;
+25145581;;KORA Frontal 130CM Transp. Cromo;Mampara frontal KORA 130 cm, Transp. Cromo;KORA;Profiltek;130;203-11-25;;;Mamparas frontales;
+25142593;;KORA Frontal 140CM Transp. Cromo;Mampara frontal KORA 140 cm, Transp. Cromo;KORA;Profiltek;140;203-11-26;;;Mamparas frontales;
+25142615;;KORA Frontal 150CM Transp. Cromo;Mampara frontal KORA 150 cm, Transp. Cromo;KORA;Profiltek;150;203-11-27;;;Mamparas frontales;
+25142605;;KORA Frontal 160CM Transp. Cromo;Mampara frontal KORA 160 cm, Transp. Cromo;KORA;Profiltek;160;203-11-28;;;Mamparas frontales;
+25032199;;DETROIT Bañera Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo DETROIT 70 cm, Transp. Cromo;DETROIT;;70;203-11-29;;;Mamparas laterales fijas;6
+10960663;;CATANIA PRO Rectangular 70X90CM Transp. Cromo;Mampara angular / rectangular CATANIA PRO 70X90 cm, Transp. Cromo;CATANIA PRO;;70X90;203-04-18;;Ocupa el final del rack 4 y sigue en el rack 5;Mamparas angulares;30
+10960691;;CATANIA PRO Rectangular 80X100CM Transp. Cromo;Mampara angular / rectangular CATANIA PRO 80X100 cm, Transp. Cromo;CATANIA PRO;;80X100;203-05-03;;;Mamparas angulares;47
+10960705;;CATANIA PRO Rectangular 80X120CM Transp. Cromo;Mampara angular / rectangular CATANIA PRO 80X120 cm, Transp. Cromo;CATANIA PRO;;80X120;203-05-04;;;Mamparas angulares;37
+25043209;;LEXIE Rectangular 70X100CM Serigrafiado Cromo;Mampara angular / rectangular LEXIE 70X100 cm, Serigrafiado Cromo;LEXIE;;70X100;203-05-05;;;Mamparas angulares;1
+10952725;;LEXIE Rectangular 70X100CM Transp. Negro;Mampara angular / rectangular LEXIE 70X100 cm, Transp. Negro;LEXIE;;70X100;203-05-06;;;Mamparas angulares;23
+25043208;;LEXIE Rectangular 70X120CM Serigrafiado Cromo;Mampara angular / rectangular LEXIE 70X120 cm, Serigrafiado Cromo;LEXIE;;70X120;203-05-07;;;Mamparas angulares;6
+10952732;;LEXIE Rectangular 70X120CM Transp. Negro;Mampara angular / rectangular LEXIE 70X120 cm, Transp. Negro;LEXIE;;70X120;203-05-08;;Ocupa el final del rack 5 y sigue en el rack 6;Mamparas angulares;24
+25043207;;LEXIE Rectangular 70X90CM Serigrafiado Cromo;Mampara angular / rectangular LEXIE 70X90 cm, Serigrafiado Cromo;LEXIE;;70X90;203-05-09;;;Mamparas angulares;
+10952711;;LEXIE Rectangular 70X90CM Transp. Negro;Mampara angular / rectangular LEXIE 70X90 cm, Transp. Negro;LEXIE;;70X90;203-05-10;;;Mamparas angulares;5
+25098024;;VICTORIA PLUS Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo VICTORIA PLUS 70 cm, Transp. Cromo;VICTORIA PLUS;Roca;70;203-12-01;;;Mamparas laterales fijas;2
+25098023;;VICTORIA PLUS Lateral Fijo 80CM Transp. Cromo;Mampara lateral fijo VICTORIA PLUS 80 cm, Transp. Cromo;VICTORIA PLUS;Roca;80;203-12-02;;;Mamparas laterales fijas;3
+25098056;;VICTORIA PLUS Lateral Fijo 70CM Transp. Negro;Mampara lateral fijo VICTORIA PLUS 70 cm, Transp. Negro;VICTORIA PLUS;Roca;70;203-12-03;;;Mamparas laterales fijas;
+25098044;;VICTORIA PLUS Lateral Fijo 80CM Transp. Negro;Mampara lateral fijo VICTORIA PLUS 80 cm, Transp. Negro;VICTORIA PLUS;Roca;80;203-12-04;;;Mamparas laterales fijas;
+25060552;;DENVER PRO Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo DENVER PRO 70 cm, Transp. Cromo;DENVER PRO;;70;203-12-05;;;Mamparas laterales fijas;22
+25060489;;DENVER PRO Lateral Fijo 80CM Transp. Cromo;Mampara lateral fijo DENVER PRO 80 cm, Transp. Cromo;DENVER PRO;;80;203-12-06;;;Mamparas laterales fijas;23
+25060550;;DENVER PRO Lateral Fijo 90CM Transp. Cromo;Mampara lateral fijo DENVER PRO 90 cm, Transp. Cromo;DENVER PRO;;90;203-12-07;;;Mamparas laterales fijas;
+25060881;;INCA SLIM Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo INCA SLIM 70 cm, Transp. Cromo;INCA SLIM;Teka;70;203-12-08;;;Mamparas laterales fijas;10
+25060883;;INCA SLIM Lateral Fijo 80CM Transp. Cromo;Mampara lateral fijo INCA SLIM 80 cm, Transp. Cromo;INCA SLIM;Teka;80;203-12-09;;;Mamparas laterales fijas;23
+25060880;;INCA SLIM Lateral Fijo 90CM Transp. Cromo;Mampara lateral fijo INCA SLIM 90 cm, Transp. Cromo;INCA SLIM;Teka;90;203-12-10;;;Mamparas laterales fijas;7
+25060882;;INCA SLIM Lateral Fijo 100CM Transp. Cromo;Mampara lateral fijo INCA SLIM 100 cm, Transp. Cromo;INCA SLIM;Teka;100;203-12-11;;;Mamparas laterales fijas;
+25060910;;INCA SLIM Lateral Fijo 70CM Transp. Negro;Mampara lateral fijo INCA SLIM 70 cm, Transp. Negro;INCA SLIM;Teka;70;203-12-12;;;Mamparas laterales fijas;6
+25060899;;INCA SLIM Lateral Fijo 80CM Transp. Negro;Mampara lateral fijo INCA SLIM 80 cm, Transp. Negro;INCA SLIM;Teka;80;203-12-13;;;Mamparas laterales fijas;8
+25060904;;INCA SLIM Lateral Fijo 90CM Transp. Negro;Mampara lateral fijo INCA SLIM 90 cm, Transp. Negro;INCA SLIM;Teka;90;203-12-14;;;Mamparas laterales fijas;2
+25060907;;INCA SLIM Lateral Fijo 100CM Transp. Negro;Mampara lateral fijo INCA SLIM 100 cm, Transp. Negro;INCA SLIM;Teka;100;203-12-15;;;Mamparas laterales fijas;2
+25139196;;NORA Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo NORA 70 cm, Transp. Cromo;NORA;Roca;70;203-12-16;;;Mamparas laterales fijas;
+25139192;;NORA Lateral Fijo 80CM Transp. Cromo;Mampara lateral fijo NORA 80 cm, Transp. Cromo;NORA;Roca;80;203-12-17;;;Mamparas laterales fijas;
+25062907;;D0 PRO Lateral Fijo 70X200CM Transp. Cromo;Mampara lateral fijo D0 PRO 70X200 cm, Transp. Cromo;D0 PRO;Duscholux;70X200;203-12-18;;;Mamparas laterales fijas;2
+25062908;;D0 PRO Lateral Fijo 80X200CM Transp. Cromo;Mampara lateral fijo D0 PRO 80X200 cm, Transp. Cromo;D0 PRO;Duscholux;80X200;203-12-19;;;Mamparas laterales fijas;5
+25062906;;D0 PRO Lateral Fijo 90X200CM Transp. Cromo;Mampara lateral fijo D0 PRO 90X200 cm, Transp. Cromo;D0 PRO;Duscholux;90X200;203-12-20;;;Mamparas laterales fijas;1
+25094843;;D0 PRO Lateral Fijo 70X200CM Transp. Negro;Mampara lateral fijo D0 PRO 70X200 cm, Transp. Negro;D0 PRO;Duscholux;70X200;203-12-21;;;Mamparas laterales fijas;
+25094842;;D0 PRO Lateral Fijo 80X200CM Transp. Negro;Mampara lateral fijo D0 PRO 80X200 cm, Transp. Negro;D0 PRO;Duscholux;80X200;203-12-22;;;Mamparas laterales fijas;
+25094844;;D0 PRO Lateral Fijo 90X200CM Transp. Negro;Mampara lateral fijo D0 PRO 90X200 cm, Transp. Negro;D0 PRO;Duscholux;90X200;203-12-23;;;Mamparas laterales fijas;
+25145476;;KORA Lateral Fijo 70CM Transp. Cromo;Mampara lateral fijo KORA 70 cm, Transp. Cromo;KORA;Profiltek;70;203-12-24;;;Mamparas laterales fijas;
+25142616;;KORA Lateral Fijo 80CM Transp. Cromo;Mampara lateral fijo KORA 80 cm, Transp. Cromo;KORA;Profiltek;80;203-12-25;;;Mamparas laterales fijas;`;
+
+/* =========================================================
+   2. TRADUCCIÓN DE LA UBICACIÓN  ← una sola regla, editable
+   ZONA-RACK-POSICIÓN   ej.  SV01-202-03
+   ========================================================= */
+const ZONAS = { "202":"Tubo logístico", "203":"Tubo logístico", SV01:"Tubo logístico" };
+const PARED = { "202":"Muebles", "203":"Mamparas" };   // solo informativo, para la ficha
+let POS_POR_RACK = {};                // posiciones reales de cada rack, calculadas de los datos
+function legible(u){
+  if(!u) return {texto:"Sin ubicación", z:"", zona:"", rack:"", pos:0};
+  const p = String(u).trim().toUpperCase().split(/[-_/ ]+/);
+  const zona = ZONAS[p[0]] || p[0] || "";
+  const rackRaw = p[1] || "";
+  const rack = rackRaw.replace(/^0+/,"");          // 202 → 202 ; 03 → 3
+  const pos  = parseInt(p[2],10) || 0;
+  const pared = p[0] || "";
+  const t = [zona, rack? pared+" - Rack "+rack : pared, pos? "Pos. "+pos : ""].filter(Boolean).join(" · ");
+  const corto = [rack? pared+" · Rack "+rack : pared, pos? "Pos. "+pos : ""].filter(Boolean).join(" · ");
+  return {texto:t, corto, z:pared, zona, rack, pos, familia:PARED[pared]||""};
+}
+document.getElementById('mapaHint').textContent =
+  "203-07-12  →  " + legible("203-07-12").texto + "\n202-03-10  →  " + legible("202-03-10").texto;
+
+/* =========================================================
+   3. ALMACENAMIENTO (funciona dentro y fuera de la app)
+   ========================================================= */
+const mem = {};
+const Store = {
+  async get(k){ try{ if(window.storage){const r=await window.storage.get(k); return r?r.value:null;} return localStorage.getItem(k);}catch(e){ return mem[k] ?? null; } },
+  async set(k,v){ try{ if(window.storage){await window.storage.set(k,v); return;} localStorage.setItem(k,v);}catch(e){ mem[k]=v; } }
+};
+
+/* =========================================================
+   4. BÚSQUEDA POR SIMILITUD
+   ========================================================= */
+const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/[^a-z0-9]+/g," ").trim();
+
+/* Reduce una palabra a cómo suena en castellano: cora→kora, ducholux→dukolus,
+   biktoria→biktoria, serigrafiao≈serigrafiado. Así "cora" y "kora" acaban iguales. */
+function fon(s){
+  return norm(s)
+    .replace(/qu/g,"k").replace(/q/g,"k")
+    .replace(/c([ei])/g,"s$1").replace(/c/g,"k")
+    .replace(/z/g,"s").replace(/x/g,"s")
+    .replace(/v/g,"b").replace(/h/g,"")
+    .replace(/ll/g,"y").replace(/gu([ei])/g,"g$1")
+    .replace(/(.)\1+/g,"$1");
+}
+const _fcache = new Map();
+const fonTok = t => { let v=_fcache.get(t); if(v===undefined){ v=fon(t); _fcache.set(t,v);} return v; };
+
+/* Damerau-Levenshtein: una letra cambiada de orden ("angualr") cuenta como 1 error */
+function lev(a,b){
+  if(a===b) return 0;
+  const m=a.length,n=b.length; if(!m||!n) return Math.max(m,n);
+  const d=Array.from({length:m+1},(_,i)=>{const r=new Array(n+1).fill(0); r[0]=i; return r;});
+  for(let j=0;j<=n;j++) d[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const c = a[i-1]===b[j-1]?0:1;
+      d[i][j]=Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+c);
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]) d[i][j]=Math.min(d[i][j], d[i-2][j-2]+1);
+    }
+  }
+  return d[m][n];
+}
+const sim = (a,b)=> 1 - lev(a,b)/Math.max(a.length,b.length);
+
+const CAMPOS = [["designacion",3],["descripcion",2],["marca",1.6],["fabricante",1.8],["medida",2.2],["codigo",3.2],["ean",3.2],["notas",.9],["expo",1.2]];
+
+function puntuaToken(tok, it){
+  let best=0;
+  for(const [campo,peso] of CAMPOS){
+    const txt = it._n[campo]; if(!txt) continue;
+    let s=0;
+    if(txt===tok) s=100;
+    else if(txt.startsWith(tok)) s=70;
+    else if(new RegExp("\\b"+tok.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(txt)) s=55;
+    else if(txt.includes(tok)) s=38;
+    else if(tok.length>=4){
+      // tolerancia a erratas palabra a palabra
+      for(const w of txt.split(" ")){
+        if(Math.abs(w.length-tok.length)>3) continue;
+        const r=sim(tok,w); if(r>=.68) s=Math.max(s, 34*r);
+        // abreviaturas internas: "mampra" ↔ "mamp"
+        if(w.length>=3 && (tok.startsWith(w)||w.startsWith(tok.slice(0,4)))) s=Math.max(s,26);
+      }
+    }
+    if(s) best=Math.max(best, s*peso);
+  }
+  // segunda vuelta: por cómo suena, para erratas y variantes de escritura
+  const tf = fonTok(tok);
+  if(tf.length>=3){
+    for(const [campo,peso] of CAMPOS){
+      const txt = it._f[campo]; if(!txt) continue;
+      let s=0;
+      for(const w of txt.split(" ")){
+        if(w===tf) s=Math.max(s,42);
+        else if(tf.length>=4 && Math.abs(w.length-tf.length)<=3 && (w.startsWith(tf)||tf.startsWith(w))) s=Math.max(s,32);
+        else if(tf.length>=4 && Math.abs(w.length-tf.length)<=3){
+          const r=sim(tf,w); if(r>=.70) s=Math.max(s, 31*r);
+        }
+      }
+      if(s) best=Math.max(best, s*peso);
+    }
+  }
+  return best;
+}
+
+/* Referencia exacta: código interno o EAN completo. Cuando acierta,
+   es la respuesta, no una candidata: se muestra sola. */
+function exacta(q, datos){
+  const n = norm(q).replace(/ /g,"");
+  if(!/^[0-9]{4,}$/.test(n)) return [];
+  const z = n.replace(/^0+/,"");
+  return datos.filter(it =>
+    it._n.codigo===n || it._n.ean===n ||
+    (it._n.codigo && it._n.codigo.replace(/^0+/,"")===z) ||
+    (it._n.ean && it._n.ean.replace(/^0+/,"")===z));
+}
+
+function buscar(q, datos, filtro){
+  const ex = exacta(q, datos);
+  if(ex.length) return ex.map(it=>({it, s:99999}));
+  const nq = norm(q);
+  if(!nq) return [];
+  const toks = nq.split(" ");
+  const out=[];
+  for(const it of datos){
+    if(filtro && !filtro.t(it)) continue;
+    if(it._n.codigo===nq || it._n.ean===nq){ out.push({it,s:99999}); continue; }
+    let total=0, ok=true;
+    for(const t of toks){ const p=puntuaToken(t,it); if(!p){ ok=false; break; } total+=p; }
+    if(!ok) continue;
+    if(it._n.designacion.startsWith(toks[0])) total+=40;
+    out.push({it,s:total});
+  }
+  out.sort((a,b)=> b.s-a.s || a.it._n.designacion.localeCompare(b.it._n.designacion));
+  return out.slice(0,40);
+}
+
+
+/* =========================================================
+   4b. EQUIVALENCIAS DEL SECTOR  (búsqueda por parecido)
+   Amplía lo que escribe el colaborador con términos del mismo
+   concepto. Nunca sustituye a la búsqueda literal: solo alimenta
+   el bloque "Puedes estar buscando…".
+   ========================================================= */
+const GRUPOS = [
+  ["esquina","rincon","angular","rectangular","cuadrada","cuadrado","circular","circulo","curva","redonda","semicircular","cuarto"],
+  ["frontal","frente","recta","recto","pano","paño","cerramiento"],
+  ["corredera","correderas","deslizante","desplazable","hojas","puertas"],
+  ["abatible","batiente","plegable","apertura","puerta"],
+  ["fija","fijo","panel","walk","walkin","in"],
+  ["lateral","laterales","lado","costado"],
+  ["banera","bano","bañera","baño"],
+  ["ducha","plato","duchas"],
+  ["mampara","mamparas","pantalla","cabina","cerramiento","cristal","vidrio","hoja"],
+  ["transparente","transp","claro","clara","incoloro","limpio"],
+  ["serigrafiado","serigrafiada","serigrafia","decorado","opaco","translucido","mate","esmerilado"],
+  ["cromo","cromado","plata","plateado","gris","inox","acero","brillo"],
+  ["negro","negra","black","antracita","oscuro","grafito"],
+  ["oro","dorado","gold","laton","champan"],
+  ["blanco","blanca","bco"],
+  ["roble","rbl","madera","nogal","miel","natural"],
+  ["verde","vde"],["azul","az"],["beige","bge","crema"],
+  ["mueble","muebles","mobiliario","bajo","modulo"],
+  ["cajon","cajones","caj"],["puerta","puertas","pta","ptas"],
+  ["tapa","tapas","encimera","encimeras","sobre"],
+  ["lavabo","seno","pila"],
+  ["conjunto","conj","set","pack"],
+  /* fabricantes y sus series */
+  ["duscholux","d0","dmove","move"],
+  ["teka","inca","slim"],
+  ["roca","victoria","nora","plus"],
+  ["profiltek","kora"],
+  ["nexa","eco"]                     /* Eco es el nombre antiguo de Nexa */
+];
+const SIN = {};
+GRUPOS.forEach(g=>{
+  const n = g.map(norm);
+  n.forEach(t=>{ (SIN[t]=SIN[t]||new Set()); n.forEach(o=>{ if(o!==t) SIN[t].add(o); }); });
+});
+function variantes(tok){
+  const v = new Set();
+  (SIN[tok]||[]).forEach(x=>v.add(x));
+  if(tok.endsWith("s")){ const sg=tok.slice(0,-1); v.add(sg); (SIN[sg]||[]).forEach(x=>v.add(x)); }
+  const m = tok.match(/^(\d+)x(\d+)$/);            // 70x90 ↔ 90x70
+  if(m) v.add(m[2]+"x"+m[1]);
+  v.delete(tok);
+  return [...v];
+}
+
+/* Segunda pasada: admite sinónimos y tolera que falte un término */
+function sugerencias(q, datos, filtro, excluidos){
+  const nq = norm(q); if(!nq) return [];
+  const toks = nq.split(" ");
+  // con 1 o 2 palabras exigimos que encajen todas; a partir de 3, se tolera que falte una
+  const permitidos = toks.length>=3 ? Math.max(1, Math.floor(toks.length/4)) : 0;
+  const out = [];
+  for(const it of datos){
+    if(filtro && !filtro.t(it)) continue;
+    if(excluidos.has(it.codigo)) continue;
+    let total=0, faltan=0; const hits=[];
+    for(const t of toks){
+      let best = puntuaToken(t,it), termino = best?t:null;
+      for(const v of variantes(t)){
+        const p = puntuaToken(v,it)*0.7;
+        if(p>best){ best=p; termino=v; }
+      }
+      if(!best) faltan++; else { total+=best; hits.push(termino); }
+    }
+    if(faltan>permitidos || !total) continue;
+    out.push({it, s: total - faltan*40, hits});
+  }
+  out.sort((a,b)=> b.s-a.s);
+  return out.slice(0,12);
+}
+
+/* =========================================================
+   5. CARGA DE DATOS
+   ========================================================= */
+let DATOS=[], FILTRO=null;
+function tipoDe(it){
+  const d = norm(it.designacion+" "+it.descripcion);
+  if(d.includes("mamp")) return "Mamparas";
+  if(d.startsWith("conj")) return "Conjuntos";
+  if(d.startsWith("tapa")) return "Tapas";
+  if(d.includes("encimera")) return "Encimeras";
+  if(d.includes("mueble")) return "Muebles";
+  if(d.includes("plato")) return "Platos";
+  if(d.includes("columna")||d.includes("grifo")) return "Grifería";
+  return "Otros";
+}
+/* Separa una línea respetando las comillas, para admitir el CSV con comas
+   que publica Google Sheets además del de punto y coma de Excel. */
+function corta(linea, del){
+  const out=[]; let act="", dentro=false;
+  for(let i=0;i<linea.length;i++){
+    const ch=linea[i];
+    if(ch==='"'){ if(dentro && linea[i+1]==='"'){ act+='"'; i++; } else dentro=!dentro; }
+    else if(ch===del && !dentro){ out.push(act); act=""; }
+    else act+=ch;
+  }
+  out.push(act);
+  return out;
+}
+
+function parse(txt){
+  const lineas = txt.trim().split(/\r?\n/).filter(l=>l.trim());
+  if(!lineas.length) return [];
+  const cuenta = c => (lineas[0].split(c).length-1);
+  const del = [[";",cuenta(";")],["\t",cuenta("\t")],[",",cuenta(",")]].sort((a,b)=>b[1]-a[1])[0][0];
+  const cab = corta(lineas[0], del).map(h=>norm(h).replace(/ /g,""));
+  const idx = n => cab.indexOf(n);
+  const map = {codigo:idx("codigo"),ean:idx("ean"),familia:idx("familia"),ventas:idx("ventas"),designacion:idx("designacion"),descripcion:idx("descripcion"),
+               marca:idx("marca"),fabricante:idx("fabricante"),medida:idx("medida"),ubicacion:idx("ubicacion"),expo:idx("expo"),notas:idx("notas")};
+  const res=[];
+  for(let i=1;i<lineas.length;i++){
+    const c = corta(lineas[i], del);
+    const it={};
+    for(const k in map) it[k] = map[k]>=0 ? (c[map[k]]||"").trim() : "";
+    if(!it.codigo && !it.designacion) continue;
+    it._n={}; it._f={}; for(const [k] of CAMPOS){ it._n[k]=norm(it[k]); it._f[k]=fon(it[k]); }
+    it._loc = legible(it.ubicacion);
+    it._tipo = it.familia || tipoDe(it);
+    it._rot = it.ventas==="" ? -1 : (parseFloat(it.ventas)||0);   // -1 = sin dato de venta
+    res.push(it);
+  }
+  POS_POR_RACK={};
+  res.forEach(it=>{ const k=it._loc.z+'-'+it._loc.rack; if(it._loc.rack) POS_POR_RACK[k]=Math.max(POS_POR_RACK[k]||0, it._loc.pos); });
+  return res;
+}
+function anchoDe(it){
+  const m = String(it.medida||"").match(/^(\d+)/);
+  return m ? m[1] : "";
+}
+/* Los filtros se arman con lo que hay en el listado: primero las tres grandes
+   categorías, luego los tipos de mampara, y al final las medidas de mueble. */
+function construyeFiltros(){
+  const F = [];
+  const hay = n => DATOS.some(d=>d._tipo===n);
+  if(hay("Muebles"))    F.push({n:"Muebles",    t:it=>it._tipo==="Muebles"});
+  if(DATOS.some(d=>d._tipo.startsWith("Mamparas")))
+                        F.push({n:"Mamparas",   t:it=>it._tipo.startsWith("Mamparas")});
+  if(hay("Encimeras"))  F.push({n:"Encimeras",  t:it=>it._tipo==="Encimeras"});
+
+  [...new Set(DATOS.filter(d=>d._tipo.startsWith("Mamparas")).map(d=>d._tipo))]
+    .sort((a,b)=>a.localeCompare(b))
+    .forEach(n=> F.push({n, t:it=>it._tipo===n}));
+
+  [...new Set(DATOS.filter(d=>d._tipo==="Muebles").map(anchoDe).filter(Boolean))]
+    .sort((a,b)=>a-b)
+    .forEach(a=> F.push({n:"Muebles de "+a, t:it=>it._tipo==="Muebles" && anchoDe(it)===a}));
+  return F;
+}
+let FILTROS = [];
+function pintaChips(){
+  const c=document.getElementById('chips'); c.innerHTML="";
+  FILTROS.forEach(f=>{
+    const b=document.createElement('button');
+    b.className="chip"; b.textContent=f.n;
+    b.setAttribute('aria-pressed', FILTRO && FILTRO.n===f.n);
+    b.onclick=()=>{ FILTRO = (FILTRO && FILTRO.n===f.n) ? null : f; pintaChips(); render(); };
+    c.appendChild(b);
+  });
+}
+async function cargar(txt, guarda){
+  DATOS = parse(txt);
+  FILTROS = construyeFiltros();
+  if(FILTRO && !FILTROS.some(f=>f.n===FILTRO.n)) FILTRO=null;
+  pintaChips(); render();
+  if(guarda) await Store.set("loc_datos", txt);
+}
+
+/* =========================================================
+   6. PINTADO
+   ========================================================= */
+const $ = s=>document.querySelector(s);
+function marca(txt, terminos, cls){
+  const toks=[...new Set(terminos)].filter(t=>t&&t.length>1);
+  let out = txt.replace(/[<>&]/g,"");
+  toks.forEach(t=>{
+    const re=new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
+    out=out.replace(re,'<mark class="'+(cls||"")+'">$1</mark>');
+  });
+  return out;
+}
+function tarjeta(it, terminos, alt, primera){
+  return `<button class="res ${alt?'alt':''} ${primera&&!alt?'top':''}" data-i="${DATOS.indexOf(it)}">
+    <div class="d1">${marca(it.designacion, terminos, alt?'alt':'')}</div>
+    <div class="d2">${marca(it.descripcion, terminos, alt?'alt':'')}</div>
+    <div class="row"><span class="tag loc ${alt?'alt':''}">${it._loc.corto}</span><span class="code">${it.codigo}</span>${it._rot>0?`<span class="vt">${it._rot} vendidas</span>`:""}</div>
+  </button>`;
+}
+function render(){
+  const q=$('#q').value.trim(), cont=$('#results');
+  if(!q && !FILTRO){
+    cont.innerHTML=`<div class="empty"><div class="big">Busca el artículo</div>
+      <p>Escribe el código, o la descripción tal cual la ves en el expositor.</p>
+      <ul><li>catania frontal 120</li><li>mampara de esquina 80x80</li><li>boston 80 roble</li><li>25060827</li></ul></div>`;
+    return;
+  }
+  // Con un filtro puesto y sin escribir nada: los que más se mueven de esa categoría
+  if(!q && FILTRO){
+    const lista = DATOS.filter(FILTRO.t).sort((a,b)=> b._rot-a._rot ||
+                    a.designacion.localeCompare(b.designacion)).slice(0,40);
+    cont.innerHTML = `<div class="altcab hi">${FILTRO.n} · más vendidos</div>` +
+                     lista.map((it,i)=> tarjeta(it, [], false, i===0)).join("");
+    cont.querySelectorAll('.res').forEach(b=> b.onclick=()=>ficha(DATOS[+b.dataset.i]));
+    return;
+  }
+  // El filtro no esconde nada: sube su categoría arriba y deja el resto debajo
+  const todos = buscar(q, DATOS, null);
+  const r  = FILTRO ? todos.filter(x=>FILTRO.t(x.it)) : todos;
+  const fuera = FILTRO ? todos.filter(x=>!FILTRO.t(x.it)) : [];
+  const esExacta = exacta(q,DATOS).length>0;
+  const vistos=new Set(todos.map(x=>x.it.codigo));
+  const alt = esExacta ? [] : sugerencias(q,DATOS,null,vistos);
+  if(!todos.length && !alt.length){
+    cont.innerHTML=`<div class="empty"><div class="big">Sin resultados</div>
+      Prueba con menos palabras: la serie y la medida suelen bastar.<br>
+      Si el artículo no está en el listado, avisa al responsable de sección para darlo de alta.</div>`;
+    return;
+  }
+  const toksQ = norm(q).split(" ");
+  const porRot = (a,b)=> b.s-a.s || b.it._rot-a.it._rot;
+  let html = r.sort(porRot).map((x,i)=> tarjeta(x.it, toksQ, false, i===0)).join("");
+  if(fuera.length){
+    html += `<div class="altcab hi">Fuera de ${FILTRO.n}</div>` +
+            fuera.sort(porRot).map(x=> tarjeta(x.it, toksQ, false, false)).join("");
+  }
+  if(alt.length){
+    html += `<div class="altcab">Puedes estar buscando…</div>` +
+            alt.map(x=> tarjeta(x.it, x.hits.concat(toksQ), true, false)).join("");
+  }
+  cont.innerHTML = html;
+  cont.querySelectorAll('.res').forEach(b=> b.onclick=()=>ficha(DATOS[+b.dataset.i]));
+}
+
+/* Planta de las dos paredes del tubo, como en el plano de implantación.
+   Se enciende el rack donde está el artículo. */
+const HUECOS = { "202": {tras:9, texto:"Puerta"} };      // paso peatonal en la pared de muebles
+const TRAMOS = { "202": ["Muebles", "Modulares"], "203": ["Mamparas"] };
+
+/* Planta de las dos paredes del tubo, como en el plano de implantación:
+   cada tramo con su rótulo, el paso marcado, y encendido el rack del artículo. */
+function mapaParedes(L){
+  const filas = [["203","Mamparas"],["202","Muebles"]];
+  return `<div class="mapa">` + filas.map(([pared,nombre])=>{
+    const racks = Object.keys(POS_POR_RACK)
+      .filter(k=>k.indexOf(pared+"-")===0)
+      .map(k=>parseInt(k.split("-")[1],10))
+      .sort((a,b)=>a-b);
+    if(!racks.length) return "";
+
+    const hueco = HUECOS[pared];
+    const tramos = [[]];
+    racks.forEach(r=>{
+      tramos[tramos.length-1].push(r);
+      if(hueco && hueco.tras===r) tramos.push([]);
+    });
+
+    const celdas = t => t.map(r=>
+      `<span class="rk ${(L.z===pared && +L.rack===r)?'on':''}">${r}</span>`).join("");
+    const rotulo = i => (TRAMOS[pared]||[])[i] || "";
+
+    const cuerpo = tramos.filter(t=>t.length).map((t,i)=>
+      `<div class="tramo" style="flex:${t.length}">
+         <div class="tlabel">${rotulo(i)}</div>
+         <div class="racks">${celdas(t)}</div>
+       </div>`).join(hueco ? `
+      <div class="puerta"><span class="lamas"></span><b>Paso</b></div>` : "");
+
+    return `<div class="fila">
+      <div class="flabel">Pared ${pared} <b>${nombre}</b></div>
+      <div class="wall">${cuerpo}</div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function ficha(it){
+  const L=it._loc;
+  const total = POS_POR_RACK[L.z+"-"+L.rack] || L.pos;
+  const segs = Array.from({length:total},(_,k)=>
+    `<div class="seg ${k+1===L.pos?'on':''}">${k+1}</div>`).join("");
+  $('#card').innerHTML = `
+    <div class="grab"></div>
+    <div class="plate">
+      <div class="lead">Ubicación · ${L.zona||"Tubo logístico"}</div>
+      <div class="path">${L.corto}</div>
+      <div class="raw">${it.ubicacion||"—"}</div>
+    </div>
+    ${mapaParedes(L)}
+    <dl class="dl">
+      <div><dt>Artículo</dt><dd>${it.designacion}</dd></div>
+      <div><dt>Descripción</dt><dd>${it.descripcion||"—"}</dd></div>
+      <div><dt>Código</dt><dd class="mono">${it.codigo}</dd></div>
+      ${it.ean?`<div><dt>EAN</dt><dd class="mono">${it.ean}</dd></div>`:""}
+      <div><dt>Medida</dt><dd>${it.medida||"—"}</dd></div>
+      <div><dt>Serie</dt><dd>${it.marca||"—"}</dd></div>
+      ${it.fabricante?`<div><dt>Fabricante</dt><dd>${it.fabricante}</dd></div>`:""}
+      <div><dt>Venta año</dt><dd>${it._rot>=0? it._rot+" uds" : "sin dato"}</dd></div>
+      <div><dt>Stock web</dt><dd id="stockDd">—</dd></div>
+      <div><dt>En expo</dt><dd>${it.expo||"—"}</dd></div>
+      ${it.notas?`<div><dt>Aviso</dt><dd>${it.notas}</dd></div>`:""}
+    </dl>
+    <div class="acts">
+      <button id="stockWeb">Stock ahora</button>
+      <button class="prim" id="copiar">Copiar código</button>
+      <button id="cerrar">Cerrar</button>
+    </div>`;
+  $('#sheet').classList.add('open');
+  $('#copiar').onclick=()=>{ navigator.clipboard?.writeText(it.codigo); toast("Código copiado"); };
+  consultaStock(it.codigo);
+  $('#stockWeb').onclick=()=>{
+    const a = ALMACENES[ALMACEN];
+    window.open(a.web + encodeURIComponent(it.codigo), "_blank", "noopener");
+  };
+  $('#cerrar').onclick=cerrar;
+}
+/* Pide el stock al servidor. Si no hay servidor o falla, se queda como estaba:
+   la app nunca se bloquea por esto. */
+/* Cuánto hace que se tomó el dato. Un stock de ayer no vale para prometer nada. */
+function antiguedad(fecha){
+  const t = Date.parse(fecha);
+  if(isNaN(t)) return {txt:"", viejo:true};
+  const min = Math.round((Date.now()-t)/60000);
+  if(min < 60)   return {txt:"hace "+Math.max(1,min)+" min", viejo:false};
+  const horas = Math.round(min/60);
+  if(horas < 24) return {txt:"hace "+horas+" h", viejo:horas>8};
+  const dias = Math.round(horas/24);
+  return {txt:"hace "+dias+(dias===1?" día":" días"), viejo:true};
+}
+
+function pintaStock(codigo, n, fecha, vivo){
+  const dd = $('#stockDd'); if(!dd) return;
+  if(vivo){
+    dd.innerHTML = `<b class="stk ${n>0?'ok':'no'}">${n} uds</b> <span class="code">ahora mismo</span>`;
+    return;
+  }
+  const a = antiguedad(fecha);
+  dd.innerHTML = `<b class="stk ${n>0?'ok':'no'} ${a.viejo?'viejo':''}">${n} uds</b> ` +
+    `<span class="code ${a.viejo?'aviso':''}">${a.txt}${a.viejo?" · compruébalo":""}</span>`;
+}
+
+async function consultaStock(codigo){
+  const dd = $('#stockDd'); if(!dd) return;
+  const local = STOCK[codigo];
+  if(local) pintaStock(codigo, local.n, local.fecha, false);      // lo que ya tenemos
+  if(!STOCK_API){ if(!local) dd.innerHTML = '<span class="code">sin datos de stock</span>'; return; }
+  if(!local) dd.textContent = "consultando…";
+  try{
+    const r = await fetch(`${STOCK_API}?codigo=${encodeURIComponent(codigo)}&almacen=${ALMACEN}`);
+    const d = await r.json();
+    if(!$('#stockDd')) return;                    // la ficha ya se cerró
+    if(typeof d.stock === "number"){
+      pintaStock(codigo, d.stock, null, true);
+    }else if(!local){
+      $('#stockDd').innerHTML = `<span class="code">no disponible en la web</span>`;
+    }
+  }catch(e){
+    if(!local && $('#stockDd')) $('#stockDd').innerHTML = `<span class="code">sin datos de stock</span>`;
+  }
+}
+
+function cerrar(){ $('#sheet').classList.remove('open'); }
+$('#sheet').onclick=e=>{ if(e.target.id==='sheet') cerrar(); };
+
+let tt;
+function toast(m){ const t=$('#toast'); t.textContent=m; t.style.display='block'; clearTimeout(tt); tt=setTimeout(()=>t.style.display='none',1600); }
+
+/* =========================================================
+   7. EVENTOS
+   ========================================================= */
+let td; // pequeño retardo: evita recalcular en cada tecla al escribir rápido
+$('#q').addEventListener('input', ()=>{ clearTimeout(td); td=setTimeout(render, 90); });
+(async()=>{ const g = await Store.get("loc_almacen"); if(g && ALMACENES[g]) ALMACEN=g; $('#alm').value=ALMACEN; })();
+$('#alm').onchange = async e => { ALMACEN = e.target.value; await Store.set("loc_almacen", ALMACEN);
+  toast("Almacén: "+ALMACENES[ALMACEN].nombre); };
+$('#btnClear').onclick=()=>{ $('#q').value=""; render(); $('#q').focus(); };
+async function abrePanelDatos(){ $('#csv').value = (await Store.get("loc_datos")) || DEMO; $('#pane').classList.add('open'); }
+/* Acceso oculto al panel de datos: mantener pulsado el título 1 segundo. */
+(()=>{
+  const t=document.querySelector('.titulo'); if(!t) return;
+  let temp;
+  const arranca=()=>{ temp=setTimeout(abrePanelDatos,1000); };
+  const para=()=>clearTimeout(temp);
+  ['touchstart','mousedown'].forEach(e=>t.addEventListener(e,arranca));
+  ['touchend','touchmove','touchcancel','mouseup','mouseleave'].forEach(e=>t.addEventListener(e,para));
+})();
+$('#btnCloseData').onclick=()=>$('#pane').classList.remove('open');
+$('#btnLoad').onclick=async()=>{ await cargar($('#csv').value,true); $('#pane').classList.remove('open'); toast(DATOS.length+" referencias cargadas"); };
+async function cargaStock(txt, guarda){
+  const nuevo = {};
+  txt.trim().split(/\r?\n/).forEach((l,i)=>{
+    if(i===0 && /codigo/i.test(l)) return;
+    const c = l.split(/[;\t,]/);
+    const cod = (c[0]||"").trim(), n = parseInt(c[1],10);
+    if(cod && !isNaN(n)) nuevo[cod] = {n, fecha:(c[2]||"").trim()};
+  });
+  STOCK = nuevo;
+  if(guarda) await Store.set("loc_stock", JSON.stringify(STOCK));
+  return Object.keys(STOCK).length;
+}
+$('#btnStock').onclick=async()=>{
+  const n = await cargaStock($('#stockCsv').value, true);
+  toast(n ? n+" referencias con stock" : "No se reconoció ninguna línea");
+  if(n) $('#pane').classList.remove('open');
+};
+$('#btnStockBorra').onclick=async()=>{ STOCK={}; await Store.set("loc_stock","{}"); toast("Stock borrado"); };
+$('#btnDemo').onclick=async()=>{ $('#csv').value=DEMO; await cargar(DEMO,true); toast("Datos de ejemplo"); };
+$('#btnExport').onclick=()=>{ navigator.clipboard?.writeText($('#csv').value); toast("Copiado al portapapeles"); };
+
+/* =========================================================
+   8. LECTOR EAN  →  ficha directa
+   Android/Chrome usa el lector del propio navegador.
+   iPhone/Safari no lo tiene, así que cargamos zxing.js (solo ahí).
+   ========================================================= */
+function porEan(v){
+  const n = norm(v).replace(/ /g,"");
+  const sinCeros = n.replace(/^0+/,"");
+  return DATOS.find(it =>
+      it._n.ean===n || it._n.codigo===n ||
+      it._n.ean.replace(/^0+/,"")===sinCeros || it._n.codigo.replace(/^0+/,"")===sinCeros
+  ) || null;
+}
+
+let camStream=null, zxReader=null;
+function pararCam(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  if(zxReader){ try{ zxReader.reset(); }catch(e){} }
+  const v=$('#cam'); if(v) v.srcObject=null;
+  $('#scanner').classList.remove('open');
+}
+
+function leido(val){
+  const it = porEan(val);
+  if(it){
+    if(navigator.vibrate) navigator.vibrate(60);
+    pararCam(); $('#q').value=""; render(); ficha(it);
+  }else{
+    pararCam(); $('#q').value=val; render();
+    toast("EAN "+val+" no está en el listado");
+  }
+}
+
+function cargaScript(src){
+  return new Promise((ok,err)=>{
+    const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=err;
+    document.head.appendChild(s);
+  });
+}
+
+async function abreLector(){
+  $('#scanState').textContent = "Enfoca el código de barras";
+  $('#scanner').classList.add('open');
+  const v = $('#cam');
+  try{
+    if('BarcodeDetector' in window){
+      const det = new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','itf','upc_a']});
+      camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+      v.srcObject = camStream; await v.play();
+      const loop = async()=>{
+        if(!camStream) return;
+        try{
+          const c = await det.detect(v);
+          if(c.length){ leido(c[0].rawValue); return; }
+        }catch(e){}
+        requestAnimationFrame(loop);
+      };
+      loop();
+      return;
+    }
+    // iPhone y navegadores sin lector propio
+    $('#scanState').textContent = "Preparando la cámara…";
+    if(!window.ZXing) await cargaScript('zxing.js');
+    zxReader = new ZXing.BrowserMultiFormatReader();
+    $('#scanState').textContent = "Enfoca el código de barras";
+    zxReader.decodeFromConstraints({video:{facingMode:{ideal:'environment'}}}, v, (res, err)=>{
+      if(res) leido(res.getText());
+    });
+  }catch(e){
+    pararCam();
+    toast("No se pudo abrir la cámara");
+  }
+}
+
+if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+  $('#btnScan').style.display = 'block';
+  $('#btnScan').onclick = abreLector;
+  $('#scanClose').onclick = pararCam;
+}
+
+/* =========================================================
+   9. ARRANQUE, ACTUALIZACIONES Y MODO SIN COBERTURA
+   ========================================================= */
+$('#verTxt').textContent = "Versión "+APP_VERSION;
+
+(async()=>{
+  // 1) lo último que se guardó en este móvil, o el listado incrustado
+  await cargar((await Store.get("loc_datos")) || DEMO, false);
+  try{ STOCK = JSON.parse((await Store.get("loc_stock")) || "{}"); }catch(e){ STOCK = {}; }
+  // 2) si hay hoja publicada y cobertura, se refresca en segundo plano
+  if(DATOS_URL){
+    try{
+      const res = await fetch(DATOS_URL, {cache:"no-store"});
+      if(!res.ok) throw 0;
+      const txt = await res.text();
+      if(txt.trim().split("\n").length > 1){
+        await cargar(txt, true);
+        toast("Listado actualizado");
+      }
+    }catch(e){ /* sin cobertura: se sigue con lo guardado */ }
+  }
+})();
+
+/* Service worker: la app queda instalada y funciona sin datos.
+   Cuando se sube una versión nueva, avisa en vez de cambiar sin permiso. */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', async()=>{
+    try{
+      const reg = await navigator.serviceWorker.register('sw.js');
+      const avisa = w => {
+        w.addEventListener('statechange', ()=>{
+          if(w.state==='installed' && navigator.serviceWorker.controller){
+            $('#update').classList.add('open');
+            $('#btnUpdate').onclick = ()=>{ w.postMessage('YA'); };
+          }
+        });
+      };
+      if(reg.waiting && navigator.serviceWorker.controller){
+        $('#update').classList.add('open');
+        $('#btnUpdate').onclick = ()=>{ reg.waiting.postMessage('YA'); };
+      }
+      reg.addEventListener('updatefound', ()=> reg.installing && avisa(reg.installing));
+      let recargando=false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        if(!recargando){ recargando=true; location.reload(); }
+      });
+      // busca parches cada vez que se vuelve a la app
+      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) reg.update(); });
+      setInterval(()=>reg.update(), 30*60*1000);
+    }catch(e){}
+  });
+}
+</script>
+</body>
+</html>
